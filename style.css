@@ -300,3 +300,28 @@ canvas.hmprev{width:100%;height:clamp(170px,34vh,300px);border-radius:16px;backg
 .unk{opacity:.55;font-style:italic}.rs{display:inline-block;padding:1px 6px;margin:1px 2px;border-radius:8px;background:#2a2c40;font-size:.85em}.rs.good{color:#ffb4a0}.rs.bad{color:#9fe8b0}
 .bestgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;max-height:60vh;overflow:auto}.mcard{background:#1c1e30;border:1px solid #3a3d58;border-radius:10px;padding:8px}.mcard.lock{opacity:.5}.mcard h4{margin:0 0 4px}
 .bar.fatb{height:14px;margin-top:3px;background:#2a2733}.bar.fatb i{background:linear-gradient(90deg,#c9a24a,#d98a3a)}.bar.fatb.mid i{background:linear-gradient(90deg,#d98a3a,#d9602a)}.bar.fatb.hi i{background:linear-gradient(90deg,#d9503a,#b0202a)}.bar.fatb b{font-size:.72em;color:#fff}
+
+.mod{font-size:.85em}.mod.bad{color:#ff9a8a}.mod.good{color:#9fe8b0}.ic-s.rule{border-left:3px solid #ffb04a;padding-left:6px;margin:4px 0}
+
+.act.tandem{background:linear-gradient(90deg,rgba(255,211,74,.35) var(--bond,0%),transparent var(--bond,0%)),#262a44}.act.tandem.ready{animation:pulse 1.2s infinite;border-color:#ffd34a}.act.helpup{border-color:#9fe8b0}@keyframes pulse{50%{box-shadow:0 0 14px #ffd34a}}
+
+/* ---- phones and the Z Fold cover screen ---- */
+@media (max-width:520px){
+  .cardslot{top:6px}#cardL{left:4px}#cardR{right:4px}
+  .hcard{width:calc(50vw - 8px);padding:4px 6px;gap:5px}.hcard .port{width:36px;height:44px}.hc-title{display:none}.hcard .chips{display:none}.hcard .aprow{margin-top:1px}
+  #infocard,#logbox{top:74px;width:min(230px,62vw)}#logbox{display:none}
+  #actionbar{width:calc(100vw - 8px);overflow-x:auto;gap:5px;padding:5px;justify-content:flex-start;-webkit-overflow-scrolling:touch}
+  #actionbar .who{display:none}#actionbar .act{flex:0 0 auto;min-width:64px;padding:6px 8px}.act b{font-size:.85em}.act small{font-size:.62em}
+  #actionbar .pend{flex:0 0 auto}
+  #topbar{transform:scale(.86);transform-origin:top center}
+  /* town: heroes on top, buttons below in two columns */
+  .tparty{left:6px;right:6px;top:6px;flex-direction:row}.tparty .hcard{width:calc(50% - 4px)}
+  .tmenu{left:6px;right:6px;top:116px;bottom:6px;width:auto;display:grid;grid-template-columns:1fr 1fr;gap:6px;align-content:start}
+  .tmenu .tbtn.gate{grid-column:1 / -1}.tbtn{padding:7px 10px}.tbtn small{font-size:.72em}
+  .tbar{flex-wrap:wrap}
+}
+@media (max-width:340px){
+  .hcard .bar b{font-size:.55em}.hcard .lv{display:none}
+  .tmenu{top:104px}.act small{display:none}.act{min-width:56px}
+}
+@media (max-width:520px){#actionbar .act.end{position:sticky;right:0;box-shadow:-8px 0 10px #150e26}.tparty{top:46px}.tmenu{top:158px}}

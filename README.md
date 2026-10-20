@@ -8,6 +8,9 @@ A 2-player co-op, pass-and-play, XCOM-style hex adventure in full 3D anime style
 - Explore the fog-covered hex map, find camps, "?" tiles, elites and bosses, and carry stones and scraps home to rebuild the town.
 
 ## Depth
+- Boss rules (Ward, Charger, Relentless, Summoner, Hunter), blessings after elites, and a land twist on each trip from the third trip on.
+- Co-op: flanking (+15%), a Bond meter that unlocks Tandem Strike, and Help Up to raise a fallen partner.
+- Story beats in each land, synthesized sound and music (no audio files), phone and Z Fold layouts.
 - Fatigue (50% tiring, 80% exhausted, 100% injury), camps and Energy Brews recover it. Fainting sends you home without loot.
 - Appearance editor: hair, face, brows, mouth, shirt, pants, shoes, accessories, each with colours.
 - Skills are gated by stat thresholds (3 / 10 / 18 / 26) across Warrior (STR), Archer (AGI), Mage (INT) and Monk (END). Weapons are universal: damage scales with the weapon's stat.

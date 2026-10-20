@@ -196,6 +196,7 @@ U.showTown=function(){
   renderTown();
 };
 function renderTown(){
+  if(TGH.sound)TGH.sound.music('town');
   const s=G.s,t=s.town;
   scr().innerHTML=`<div class="town">
     <div class="tbar"><span class="gold">${t.gold} gold</span>${matChips(t.mats)}<span class="grow"></span><button class="ghost small" id="tb-set">Settings</button></div>
@@ -234,7 +235,7 @@ function townPanel(p){
     body=TGH.ADVENTURES.map(k=>{
       const B=TGH.BIOMES[k],req=TGH.ADV_REQ[k],open=!req||t.beaten.includes(req),done=t.beaten.includes(k);
       const lvl=TGH.LEVEL_BASE[k];
-      return `<div class="advcard ${open?'':'locked'}"><div><b>${esc(B.name)}</b> ${done?'<span class="done">cleared</span>':''}<small>Foes around level ${lvl}–${lvl+4} · ${B.h} rows</small><small>${esc(B.flavor)}</small>${k==='cave'?`<small>Cave beasts beaten: ${(t.caveBeaten||[]).length}/3</small>`:''}</div>${open?`<button class="gold small" data-go="${k}">Set out</button>`:`<span class="lock">Beat ${esc(TGH.BIOMES[req].name)} first</span>`}</div>`;
+      return `<div class="advcard ${open?'':'locked'}"><div><b>${esc(B.name)}</b> ${done?'<span class="done">cleared</span>':''}<small>Foes around level ${lvl}–${lvl+4} · ${B.h} rows</small><small>${esc(B.flavor)}</small>${(()=>{const m=TGH.landMod(t,k);return m?`<small class="mod ${TGH.LAND_MOD[m].bad?'bad':'good'}"><b>${TGH.LAND_MOD[m].n}:</b> ${TGH.LAND_MOD[m].d}</small>`:'<small class="mod">No twist on this trip.</small>'})()}${k==='cave'?`<small>Cave beasts beaten: ${(t.caveBeaten||[]).length}/3</small>`:''}</div>${open?`<button class="gold small" data-go="${k}">Set out</button>`:`<span class="lock">Beat ${esc(TGH.BIOMES[req].name)} first</span>`}</div>`;
     }).join('');
   }else if(p==='lodge'){
     title='Family Home';
@@ -279,6 +280,8 @@ function townPanel(p){
 function settings(){
   const m=document.createElement('div');m.className='modal';
   m.innerHTML=`<div class="mbox wide"><h2>Settings</h2><div class="mbody scroll">
+    <label class="chk"><input type="checkbox" id="s-sfx" ${TGH.sound.sfxOn?'checked':''}> Sound effects</label>
+    <label class="chk"><input type="checkbox" id="s-mus" ${TGH.sound.musicOn?'checked':''}> Music</label>
     <label class="chk"><input type="checkbox" id="s-fast" ${G.settings.fast?'checked':''}> Fast animations</label>
     <p>Save code. Copy it to back up or move your save to another device.</p>
     <textarea id="s-exp" rows="4" readonly></textarea>
@@ -289,6 +292,8 @@ function settings(){
     <div class="mbtns"><button class="mb" id="s-close">Close</button></div></div>`;
   document.body.appendChild(m);
   $('#s-exp').value=G.exportSave();
+  m.querySelector('#s-sfx').onchange=e=>TGH.sound.setSfx(e.target.checked);
+  m.querySelector('#s-mus').onchange=e=>TGH.sound.setMusic(e.target.checked);
   m.querySelector('#s-fast').onchange=e=>{G.settings.fast=e.target.checked;A.fast=G.settings.fast;G.save()};
   m.querySelector('#s-copy').onclick=()=>{$('#s-exp').select();try{document.execCommand('copy');U.toast('Copied.')}catch(e){}};
   m.querySelector('#s-load').onclick=()=>{if(G.importSave($('#s-imp').value)&&G.load()){m.remove();scr().innerHTML='';resume()}else U.toast('That code did not load.')};

@@ -6,6 +6,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   try{
     TGH.art.init($('#gl'));
     TGH.ui.init();
+    document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('button')&&TGH.sound)TGH.sound.play('click')});
     $('#b-fast').onclick=()=>{TGH.game.settings.fast=!TGH.game.settings.fast;TGH.art.fast=TGH.game.settings.fast;$('#b-fast').classList.toggle('on',TGH.art.fast);TGH.game.save()};
     $('#b-zin').onclick=()=>TGH.art.setZoom(TGH.art.zoom*.85);
     $('#b-zout').onclick=()=>TGH.art.setZoom(TGH.art.zoom*1.18);

@@ -92,14 +92,17 @@ G.startRun=function(biome){
   }
   for(const h of s.heroes){h.st={};h.down=false;h.hp=h.maxHp;h.mp=h.maxMp;h.ap=h.maxAp;h.minR=null;h.depth=0}
   const boss=map.ents.find(e=>e.type==='boss');boss.name=bossName;
-  s.run={biome,map,vis:new Array(map.w*map.h).fill(0),loot:{gold:0,mats:{},xp:0},turn:{hero:0,bank:0,round:1},battle:null,bossName,bossBeaten:false,rounds:0,foesKilled:0,log:[]};
+  const modId=TGH.landMod(s.town,biome);
+  s.run={mod:modId,blessings:[],biome,map,vis:new Array(map.w*map.h).fill(0),loot:{gold:0,mats:{},xp:0},turn:{hero:0,bank:0,round:1},battle:null,bossName,bossBeaten:false,rounds:0,foesKilled:0,log:[]};
   s.heroes[0].c=map.start[0].c;s.heroes[0].r=map.start[0].r;
   s.heroes[1].c=map.start[1].c;s.heroes[1].r=map.start[1].r;
   G.enterRun(true);
+  G.beat('arrive',biome);
 };
 // Build the scene from the run in the save (a fresh start or a loaded one).
 G.enterRun=function(fresh){
   const run=R_(),map=run.map,s=G.s;
+  TGH.syncMods(run);for(const h of s.heroes)TGH.recalc(h,s.town);
   A.setBiome(run.biome);A.buildMap(map);
   // start markers
   for(const st of map.start)A.addEnt({id:'start'+st.c,type:'start',c:st.c,r:st.r});
@@ -268,6 +271,18 @@ G.afterStep=async function(h){
 };
 
 /* ---------- things on the map ---------- */
+// The bond between the two heroes fills as they fight side by side. At 100% they can strike together.
+G.bondAdd=function(n){const run=R_();if(!run)return;const was=run.bond||0;run.bond=Math.min(100,was+n);if(was<100&&run.bond>=100){tell('Your bond is full. Tandem Strike is ready!','good');ui().toast('Bond full: Tandem Strike ready!')}};
+G.partnerOf=h=>G.s.heroes.find(x=>x!==h);
+G.flanked=(h,t)=>{const p=G.partnerOf(h);return !!(p&&!p.down&&G.mode==='battle'&&dist(p,t)<=2)};
+// A few lines of story: once when you first reach a land, and a clue the first time its guardian falls.
+G.beat=async function(kind,biome){
+  const B=TGH.BEATS&&TGH.BEATS[biome];if(!B)return;
+  const seen=G.s.seen=G.s.seen||{};const key=kind+':'+biome;
+  if(seen[key]||(kind==='clue'&&!B.clue))return;seen[key]=1;
+  const txt=(kind==='clue'?B.clue:B.arrive).replace(/\{sis\}/g,G.sisterName());
+  await ui().modalChoice(kind==='clue'?B.clueT:B.t,'<p class="story">'+txt+'</p>',[{label:kind==='clue'?'Press on':'Onward',cls:'gold'}]);
+};
 G.addFat=function(h,x){
   const msgs=TGH.addFat(h,x);TGH.recalc(h,G.s.town);
   for(const m of msgs){tell(m,'warn');ui().float(h,'Tiring','dbf')}
@@ -461,9 +476,10 @@ G.tapHex=function(c,r){
     else if(tgt==='ally'){target=u&&u.team==='hero'&&!u.down?u:null;ok=target&&(target===h||G.canTarget(h,sk,c,r))}
     else if(tgt==='fallen'){target=u&&u.team==='hero'&&u.down?u:null;ok=target&&G.canTarget(h,sk,c,r)}
     else{G.cancel();return}
+    if(target&&ok&&G.sel.kind==='tandem'&&!G.canTarget(G.partnerOf(h),null,target.c,target.r)){ui().toast(G.partnerOf(h).name+' cannot reach that enemy.');return}
     if(target&&ok){
       if(G.pend&&G.pend.target===target){G.confirm();return}
-      G.pend={type:'act',skill:sk,target};
+      G.pend={type:'act',skill:sk,target,tandem:G.sel.kind==='tandem'};
       A.clearOverlay('preview');
       A.setOverlay('preview',G.affected(h,sk,target).map(x=>({c:x.c,r:x.r})),'#ff3a3a');
       ui().refresh();return;
@@ -491,7 +507,7 @@ G.confirm=function(){
   if(G.busy||!G.pend)return;
   const p=G.pend;
   if(p.type==='move'){if(!p.plan.ok){ui().toast('Not enough AP for that move.');return}G.doMove(p.plan)}
-  else if(p.type==='act')G.doAction(G.active(),p.skill,p.target);
+  else if(p.type==='act'){if(p.tandem)G.doTandem(G.active(),p.target);else G.doAction(G.active(),p.skill,p.target)}
 };
 // The foes a strike would touch, for the red preview.
 G.affected=function(h,skill,target){
@@ -550,11 +566,13 @@ G.attackSequence=async function(h,skill,target){
     }
     for(const t of tgts){
       if(t.down)continue;
-      const r=TGH.strike(h,t,skill,{});
+      const so={flank:G.flanked(h,t)};const r=TGH.strike(h,t,skill,so);
+      if(so.wardBroke)ui().float(t,'Ward broken!','crit');
       if(!r.hit){ui().float(t,'Miss','miss');tell(`${h.name}'s ${skill?skill.n:'attack'} misses ${t.name}.`);continue}
       let dmg=r.dmg;
       if(n===0&&tgts.length>1&&t!==target&&!skill.hits)dmg=Math.round(dmg*.9);
       applyDamage(h,t,dmg,r,skill);
+      G.bondAdd(so.flank?6:3);if(so.flank&&n===0)ui().float(t,'Flank!','buff');
       totalDmg+=dmg;drainBase+=dmg;
       A.fx.slash(A.unitPos(t),col==='#b9b1a3'?'#ffffff':col);A.fx.burst(A.unitPos(t),col==='#b9b1a3'?'#ffd0a0':col,r.crit?16:8);
       A.hurt(t,r.crit);
@@ -596,6 +614,8 @@ function applyDamage(att,t,dmg,r,skill){
 }
 function applyStun(t,n){
   const turns=t.boss?1:n;t.st.stun=turns;ui().float(t,'Stunned','dbf');
+  if(t.charging){t.charging=false;ui().float(t,'Charge cancelled!','crit')}
+  if(t.rule==='ward'&&t.wardUp){t.wardUp=false;t.exposed=2;ui().float(t,'Ward broken!','crit')}
 }
 async function killFoe(h,t){
   t.down=true;tell(`${t.name} is defeated.`,'good');
@@ -631,6 +651,42 @@ G.supportSequence=async function(h,skill,target){
   if(skill.evaBuff){st.eva={n:skill.evaBuff.n,v:skill.evaBuff.v};ui().float(h,'Evasive','buff');if(skill.dmgSelf)st.dmgSelf={n:skill.evaBuff.n,v:skill.dmgSelf}}
   if(skill.partyEva){for(const x of G.s.heroes)if(x!==h&&!x.down){x.st.eva={n:3,v:skill.partyEva};ui().float(x,'Evasive','buff')}}
   await sleep(300);
+};
+
+/* ---------- two heroes, one fight ---------- */
+G.startTandem=function(){
+  const run=R_(),h=G.active(),p=G.partnerOf(h);
+  if(G.busy||G.mode!=='battle')return;
+  if((run.bond||0)<100){ui().toast('The bond is not full yet ('+Math.round(run.bond||0)+'%). Fight side by side to fill it.');return}
+  if(p.down){ui().toast('Your partner is down.');return}
+  if(h.ap<1){ui().toast('Tandem Strike costs 1 AP.');return}
+  G.pend=null;A.clearAllOverlays();G.sel={kind:'tandem',skill:null};
+  const hx=G.foes().filter(f=>G.canTarget(h,null,f.c,f.r)&&G.canTarget(p,null,f.c,f.r));
+  if(!hx.length){ui().toast('No enemy is in reach of both of you. Move closer together.');G.sel=null;return}
+  A.setOverlay('range',hx.map(f=>({c:f.c,r:f.r})),'#ffd34a');ui().refresh();
+};
+G.doTandem=async function(h,target){
+  const run=R_(),p=G.partnerOf(h);G.busy=true;G.pend=null;G.sel=null;A.clearAllOverlays();
+  h.ap-=1;run.bond=0;ui().refresh();
+  A.focus(target.c,target.r);ui().float(target,'TANDEM STRIKE','crit');tell(`${h.name} and ${p.name} strike together!`,'good');
+  TGH.tandemMult=1.5;if(TGH.sound)TGH.sound.play('tandem');
+  try{
+    await G.attackSequence(h,null,target);
+    if(!target.down&&G.canTarget(p,null,target.c,target.r))await G.attackSequence(p,null,target);
+    else if(target.down){const o=G.foes().filter(f=>G.canTarget(p,null,f.c,f.r))[0];if(o)await G.attackSequence(p,null,o)}
+  }finally{TGH.tandemMult=1}
+  G.computeVis();
+  if(G.foes().length===0&&run.battle){await G.victory();return}
+  if(G.live().length===0){G.busy=false;await G.defeat();return}
+  G.busy=false;A.focus(h.c,h.r);ui().refresh();G.checkAutoEnd();
+};
+G.canHelpUp=h=>{const p=G.partnerOf(h);return !!(p&&p.down&&dist(h,p)<=1&&!h.down)};
+G.helpUp=async function(){
+  const h=G.active(),p=G.partnerOf(h);
+  if(G.busy||!G.canHelpUp(h))return;if(h.ap<1){ui().toast('Helping up costs 1 AP.');return}
+  G.busy=true;h.ap-=1;p.down=false;p.hp=Math.max(1,Math.round(p.maxHp*.25));A.revive(p);
+  ui().float(p,'Back on your feet','heal');A.fx.sparkles(A.unitPos(p),'#ffd0a0',16,1);tell(`${h.name} pulls ${p.name} back to their feet.`,'good');
+  G.bondAdd(15);await sleep(500);G.busy=false;ui().refresh();G.checkAutoEnd();
 };
 
 /* ---------- guard, items ---------- */
@@ -706,7 +762,9 @@ G.foePhase=async function(){
     f.packN=b.foes.filter(x=>x!==f&&!x.down).length;
     if(f.mut==='regen'&&f.hp<f.maxHp){const a=Math.round(f.maxHp*.08);f.hp=Math.min(f.maxHp,f.hp+a);ui().float(f,'+'+a,'heal')}
     if(f.ab==='regen'&&f.hp<f.maxHp){const a=Math.max(1,Math.round(f.maxHp*f.abV/100));f.hp=Math.min(f.maxHp,f.hp+a);ui().float(f,'+'+a,'heal')}
-    if(f.def==='The Cave Bear'){f.atk=Math.round(f.atk*1.07)}
+    if(f.def==='The Cave Bear'||f.rule==='relentless'){f.atk=Math.round(f.atk*1.07)}
+    if(f.rule==='ward'&&f.exposed>0){f.exposed--;if(f.exposed<=0){f.wardUp=true;ui().float(f,'Ward reforms','dbf')}}
+    if(f.rule==='summoner'&&b.round%3===0&&f.summonedRound!==b.round&&G.foes().length<5){f.summonedRound=b.round;await G.summonMinion(f)}
     if(f.st.stun){f.st.stun--;if(f.st.stun<=0)delete f.st.stun;ui().float(f,'Stunned','dbf');await sleep(500);continue}
     f.ap=f.maxAp;
     A.focus(f.c,f.r);await sleep(260);
@@ -715,6 +773,17 @@ G.foePhase=async function(){
     if(G.live().length===0){await G.defeat();return}
   }
   for(const h of G.s.heroes)if(h.st.guard&&h.st.guard.n<=0)delete h.st.guard;
+};
+G.summonMinion=async function(f){
+  const run=R_(),b=run.battle,B=TGH.BIOMES[run.biome],m=run.map;
+  const spot=TGH.neighbors(f.c,f.r,m.w,m.h).find(p=>!TGH.BLOCKS_MOVE.has(m.tiles[idx(p.c,p.r)])&&!unitAt(p.c,p.r));
+  if(!spot)return;
+  const mon=pick(B.mons);
+  const n=TGH.makeFoe(mon[0],mon[1],Math.max(1,f.level-3),{biome:run.biome});
+  n.maxHp=Math.round(n.maxHp*.6);n.hp=n.maxHp;n.c=spot.c;n.r=spot.r;n.xp=Math.round(n.xp*.3);n.gold=0;n.summoned=true;
+  b.foes.push(n);A.addUnit(n);A.placeUnit(n,spot.c,spot.r);
+  ui().float(f,'Summons '+n.name,'dbf');tell(`${f.name} calls a ${n.name} out of the dark.`,'bad');
+  A.fx.ring(A.unitPos(n),'#9b70dc',500);G.computeVis();await sleep(500);
 };
 const targetFor=f=>{
   const heroes=G.s.heroes.filter(h=>!h.down);if(!heroes.length)return null;
@@ -801,6 +870,12 @@ async function pullHero(f,h){
 G.foeAct=async function(f){
   const K=TGH.KINDS[f.kind]||TGH.KINDS.beast;
   let guard=0;
+  if(f.charging==='rush'){
+    f.charging=false;const t=targetFor(f);if(!t){return}
+    await G.foeMove(f,t,6);f.ap=0;
+    const t2=targetFor(f);if(t2&&dist(f,t2)<=1)await G.foeStrike(f,t2,1.8,'Tusk Charge');
+    return;
+  }
   if(f.charging){
     f.charging=false;
     ui().float(f,'UNLEASH','crit');tell(`${f.name} unleashes its stored power!`,'bad');
@@ -816,12 +891,9 @@ G.foeAct=async function(f){
     const cost=heavy?2:1;
     // monsters with skills use them about half the time
     if((f.skills||[]).length&&f.ap>=1&&rnd()<(canHit?.5:.35)){if(await foeSkill(f,tg,d))continue}
-    if(f.def==='The Giant Boar'&&d>=3&&f.ap>=2&&!canHit){
-      // charge: paw the ground, then rush the target
-      ui().float(f,'Pawing the ground…','dbf');await sleep(500);
-      await G.foeMove(f,tg,6);f.ap=0;
-      const t2=targetFor(f);if(t2&&dist(f,t2)<=1){await G.foeStrike(f,t2,1.8,'Tusk Charge')}
-      return;
+    if(f.rule==='charger'&&f.def==='The Giant Boar'&&d>=3&&f.ap>=2&&!canHit){
+      // telegraphed: paw the ground this turn, rush next turn. A stun cancels it.
+      f.charging='rush';ui().float(f,'Pawing the ground…','dbf');tell(`${f.name} paws the ground. It is about to charge!`,'bad');f.ap=0;return;
     }
     if(canHit&&f.ap>=cost){await G.foeStrike(f,tg,heavy?1.1:.62);f.ap-=cost;continue}
     // move closer
@@ -864,7 +936,7 @@ G.foeStrike=async function(f,tg,mult,label,extra){
   const r=TGH.strike(f,tg,{mult:mult,acc:92,crit:0},{});
   if(!r.hit){ui().float(tg,'Miss','miss');tell(`${f.name} misses ${tg.name}.`)}
   else{
-    tg.hp=Math.max(0,tg.hp-r.dmg);f.fixTgt=tg.name;
+    tg.hp=Math.max(0,tg.hp-r.dmg);f.fixTgt=tg.name;G.bondAdd(4);
     if(f.ab==='leech'){const a=Math.max(1,Math.round(r.dmg*f.abV/100));f.hp=Math.min(f.maxHp,f.hp+a);ui().float(f,'+'+a,'heal')}
     ui().float(tg,(r.crit?'CRIT ':'')+r.dmg,r.crit?'crit':'dmg');tell(`${f.name} hits ${tg.name} for ${r.dmg}.`,'bad');
     A.fx.burst(A.unitPos(tg),'#ff8a6a',10);A.hurt(tg,r.crit);
@@ -880,7 +952,8 @@ G.foeStrike=async function(f,tg,mult,label,extra){
 G.victory=async function(){
   const run=R_(),b=run.battle,s=G.s;
   const killed=b.foes;
-  const xp=killed.reduce((a,f)=>a+f.xp,0),gold=killed.reduce((a,f)=>a+f.gold,0);
+  const MD=TGH.mods||{};
+  const xp=Math.round(killed.reduce((a,f)=>a+f.xp,0)*(1+(MD.xpMul||0))),gold=Math.round(killed.reduce((a,f)=>a+f.gold,0)*(1+(MD.goldMul||0)));
   const wasBoss=killed.some(f=>f.boss),wasElite=killed.some(f=>f.elite);
   const bossFoe=killed.find(f=>f.boss);
   const lvl=killed[0].level;
@@ -913,10 +986,22 @@ G.victory=async function(){
   G.computeVis();
   G.busy=false;
   await ui().victory({xp,gold,items,mats,results,boss:bossFoe});
+  if(wasBoss)await G.beat('clue',run.biome);
   ui().checkLevelUps();
+  if(wasElite&&!wasBoss)await G.pickBlessing();
   A.focus(G.s.heroes[0].c,G.s.heroes[0].r);
   G.startHeroTurn(0);
   G.save();
+};
+G.pickBlessing=async function(){
+  const run=R_();run.blessings=run.blessings||[];
+  if(run.blessings.length>=TGH.BLESS_MAX)return;
+  const left=Object.keys(TGH.BLESSINGS).filter(k=>!run.blessings.includes(k));
+  const three=TGH.shuffle(left).slice(0,3);
+  const v=await ui().modalChoice('A blessing','<p>The fallen beast leaves a faint glow in the air. Choose a blessing that lasts for the rest of this trip ('+run.blessings.length+'/'+TGH.BLESS_MAX+' chosen). It works on both heroes.</p>',three.map(k=>({label:TGH.BLESSINGS[k].n+': '+TGH.BLESSINGS[k].d,v:k,cls:TGH.BLESSINGS[k].cost?'':'gold'})));
+  const id=(typeof v==='string'&&TGH.BLESSINGS[v])?v:three[0];run.blessings.push(id);TGH.syncMods(run);
+  for(const h of G.s.heroes){const was=h.maxHp;TGH.recalc(h,G.s.town);if(h.maxHp>was)h.hp+=h.maxHp-was}
+  tell('Blessing gained: '+TGH.BLESSINGS[id].n+'.','good');ui().refresh();
 };
 G.defeat=async function(){
   if(G.mode==='ended')return;
@@ -925,7 +1010,7 @@ G.defeat=async function(){
   const lost={gold:run.loot.gold,mats:Object.assign({},run.loot.mats)};
   const fee=0;
   await ui().defeat(lost,fee);
-  G.s.run=null;
+  G.s.town.runs=(G.s.town.runs||0)+1;G.s.run=null;TGH.syncMods(null);
   for(const h of s.heroes){h.down=false;h.st={};h.hp=h.maxHp;h.mp=h.maxMp;G.homeRest(h)}
   G.busy=false;G.toTown();
 };
@@ -938,7 +1023,7 @@ G.finishAdventure=async function(early){
   if(beaten&&!s.town.beaten.includes(biome))s.town.beaten.push(biome);
   for(const h of s.heroes){h.down=false;h.st={};h.hp=h.maxHp;h.mp=h.maxMp;G.homeRest(h)}
   const summary={biome,beaten,gold:loot.gold,mats:loot.mats,early,foes:run.foesKilled};
-  s.run=null;G.save();
+  s.town.runs=(s.town.runs||0)+1;s.run=null;TGH.syncMods(null);for(const h of s.heroes)TGH.recalc(h,s.town);G.save();
   await ui().homecoming(summary);
   G.busy=false;
   if(beaten&&biome==='dark'){await ui().ending();}
@@ -952,8 +1037,10 @@ G.goHome=function(){
   G.finishAdventure(true);
 };
 // Home clears fatigue; an injury heals a little with every trip home.
-G.homeRest=function(h){h.fat=0;if(h.injury){h.injury.runs--;if(h.injury.runs<=0)h.injury=null}TGH.recalc(h,G.s.town)};
+G.homeRest=function(h){
+  h.fat=0;if(h.injury){h.injury.runs--;if(h.injury.runs<=0)h.injury=null}TGH.recalc(h,G.s.town)};
 G.toTown=function(){
+  if(TGH.sound)TGH.sound.music('town');
   G.mode='town';G.sel=null;G.pend=null;
   A.clearAllOverlays();
   TGH.ui.showTown();

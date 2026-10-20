@@ -77,12 +77,14 @@ U.float=function(u,text,cls){
   const d=document.createElement('div');d.className='float '+(cls||'dmg');d.textContent=text;
   const j=(Math.random()-.5)*36;d.style.left=(p.x+j)+'px';d.style.top=p.y+'px';
   U.floaters.appendChild(d);setTimeout(()=>d.remove(),1500);
+  if(TGH.sound)TGH.sound.forFloat(cls,text);
 };
 U.banner=function(title,sub,ms){
   const b=$('#banner');b.innerHTML=`<div class="bn-t">${esc(title)}</div>${sub?`<div class="bn-s">${esc(sub)}</div>`:''}`;
   b.className='show plain';clearTimeout(U._bt);U._bt=setTimeout(()=>b.classList.remove('show'),ms||1600);
 };
 U.turnBanner=function(h,battle){
+  if(TGH.sound)TGH.sound.play('ping');
   const i=G.s.heroes.indexOf(h);
   document.body.dataset.turn=i;
   const b=$('#banner');
@@ -95,6 +97,7 @@ U.battleBanner=function(foes){
   b.className='show battle';clearTimeout(U._bt);U._bt=setTimeout(()=>b.classList.remove('show'),1500);
 };
 U.enemyBanner=function(){
+  if(TGH.sound)TGH.sound.play('alert');
   const b=$('#banner');document.body.dataset.turn='e';
   b.innerHTML='<div class="bn-t">Enemy turn</div>';b.className='show enemy';clearTimeout(U._bt);U._bt=setTimeout(()=>b.classList.remove('show'),1000);
   U.refresh();
@@ -127,8 +130,9 @@ U.refresh=function(){
   const run=G.s.run,hs=G.s.heroes;
   $('#cardL').innerHTML=card(hs[0],0);$('#cardR').innerHTML=card(hs[1],1);
   for(const c of document.querySelectorAll('.hcard'))c.onclick=()=>{const h=hs[+c.dataset.i];A.focus(h.c,h.r);if(!G.busy)U.heroMenu&&U.heroMenu(+c.dataset.i)};
-  $('#topinfo').innerHTML=`<b>${esc(TGH.BIOMES[run.biome].name)}</b>${G.mode==='battle'?` · <span class="rd">Round ${run.battle.round}</span> · ${G.foes().length} foe${G.foes().length===1?'':'s'}`:''}`;
+  $('#topinfo').innerHTML=`<b>${esc(TGH.BIOMES[run.biome].name)}</b>${run.mod?` · <span class="mod ${TGH.LAND_MOD[run.mod].bad?'bad':'good'}" data-tip="${esc(TGH.LAND_MOD[run.mod].d)}">${TGH.LAND_MOD[run.mod].n}</span>`:''}${(run.blessings||[]).length?` · <span class="mod good" data-tip="${esc(run.blessings.map(k=>TGH.BLESSINGS[k].n+': '+TGH.BLESSINGS[k].d).join(' '))}">✦ ${run.blessings.length}</span>`:''}${G.mode==='battle'?` · <span class="rd">Round ${run.battle.round}</span> · ${G.foes().length} foe${G.foes().length===1?'':'s'}`:''}`;
   document.body.dataset.mode=G.mode;
+  if(TGH.sound&&G.s&&G.s.run)TGH.sound.music(G.mode==='battle'?'battle':G.s.run.biome==='dark'?'dark':'explore');
   if(G.mode!=='ended')document.body.dataset.turn=document.body.dataset.turn==='e'&&G.busy?'e':G.s.run.turn.hero;
   U.renderActionBar();
 };
@@ -145,6 +149,8 @@ U.renderActionBar=function(){
     btns+=`<button class="act" data-tip="Skills you have learned. Each costs AP and usually mana. Tap the ? in the hero window for what unlocks them." data-a="skills" ${dis}><b>Skills</b><small>${h.skills.length} known</small></button>`;
     btns+=`<button class="act" data-tip="Use potions and scrolls from your pack." data-a="items" ${dis}><b>Items</b><small>1 AP</small></button>`;
     btns+=`<button class="act" data-tip="Brace for the enemy turn: take less damage and draw attacks toward you." data-a="guard" ${dis||(apOk(1)?'':'disabled')}><b>Guard</b><small>1 AP</small></button>`;
+    const bond=Math.round(run.bond||0);
+    btns+=`<button class="act tandem ${bond>=100?'ready':''}" style="--bond:${bond}%" data-tip="Your bond fills as you fight side by side (+3% for each hit, +6% when you flank, +4% when you are hit). At 100%, both heroes strike the same enemy for 1.5x damage for just 1 AP." data-a="tandem" ${dis}><b>Tandem</b><small>Bond ${bond}%</small></button>`;
   }else{
     btns+=`<button class="act" data-tip="Skills you have learned. Each costs AP and usually mana. Tap the ? in the hero window for what unlocks them." data-a="skills" ${dis}><b>Skills</b><small>${h.skills.length} known</small></button>`;
     btns+=`<button class="act" data-tip="Use potions and scrolls from your pack." data-a="items" ${dis}><b>Items</b><small>potions</small></button>`;
@@ -152,6 +158,7 @@ U.renderActionBar=function(){
     const near=G.s.heroes.every(x=>run.map.start.some(p=>TGH.dist(x,p)<=2));
     if(near)btns+=`<button class="act" data-a="home" ${dis}><b>Go Home</b><small>bank loot</small></button>`;
   }
+  if(G.canHelpUp(h))btns+=`<button class="act helpup" data-tip="Pull your fallen partner back up with 25% health. Costs 1 AP." data-a="helpup" ${dis}><b>Help Up</b><small>1 AP</small></button>`;
   btns+=`<button class="act end" data-tip="Finish this hero\u2019s turn. Unspent AP is lost, except moves carried over this turn." data-a="end" ${dis}><b>End Turn</b><small>${battle?(i===0&&!G.s.heroes[1].down?'then '+esc(G.s.heroes[1].name):'then enemies'):'pass to '+esc(G.s.heroes[1-i].name)}</small></button>`;
   // preview panel: what a tap on the map is about to do
   let pend='';
@@ -184,6 +191,8 @@ function onAct(a){
   else if(a==='cancel')G.cancel();
   else if(a==='hero')U.heroMenu(G.s.run.turn.hero);
   else if(a==='home')G.goHome();
+  else if(a==='tandem')G.startTandem();
+  else if(a==='helpup')G.helpUp();
 }
 // Rough damage a strike would do: sample it a few times.
 U.estimate=function(h,sk,t){
@@ -275,6 +284,7 @@ U.inspect=function(u){
   const lv=Math.max(G.knowLv(u.name),1);
   box.innerHTML=`<div class="ic-n">${esc(u.name)} <span class="lv">Lv ${u.level}</span>${u.boss?'<span class="tag boss">BOSS</span>':u.elite?'<span class="tag elite">ELITE</span>':''}</div>
     <div class="bar hp"><i style="width:${pct(u.hp,u.maxHp)}%"></i><b>${lv>=2?u.hp+' / '+u.maxHp:Math.round(u.hp/u.maxHp*100)+'%'}</b></div>
+    ${u.rule?`<div class="ic-s rule" data-tip="${esc(TGH.BOSS_RULE[u.rule].d)}"><b>Rule: ${TGH.BOSS_RULE[u.rule].n}</b>${u.rule==='ward'?(u.wardUp?' (ward up)':' (EXPOSED)'):''}${u.charging?' · <span style="color:#ffb04a">CHARGING</span>':''}: ${esc(TGH.BOSS_RULE[u.rule].d)}</div>`:''}
     ${U.monsterInfo(u,lv)}
     ${u.mut?`<div class="ic-s">${TGH.MUTATIONS[u.mut].n}: ${TGH.MUTATIONS[u.mut].d}</div>`:''}${u.blurb?`<div class="ic-s">${esc(u.blurb)}</div>`:''}`;
   box.classList.add('show');clearTimeout(U._ic);U._ic=setTimeout(()=>box.classList.remove('show'),7000);
@@ -318,12 +328,14 @@ U.showLoot=function(title,gold,items){
   return U.modalChoice(title,body,[{label:'Nice'}]);
 };
 U.victory=async function(r){
+  if(TGH.sound)TGH.sound.play('win');
   const chipsHtml=Object.entries(r.mats).map(([k,v])=>`<span class="mchip" style="border-color:${TGH.MATS[k].col}">${TGH.MATS[k].n} ×${v}</span>`).join('');
   const heroes=r.results.map(x=>`<div class="vrow p${G.s.heroes.indexOf(x.h)}"><img src="${A.portrait(x.h,60,72)}"><div><b>${esc(x.h.name)}</b> +${x.xp} XP${x.up?` <span class="lvup">LEVEL UP! → ${x.h.level}</span>`:''}${x.down?' <small>(was down)</small>':''}</div></div>`).join('');
   const loot=r.items.map(i=>`<div class="lootitem" style="border-color:${TGH.RAR[i.rarity].c}"><b style="color:${TGH.RAR[i.rarity].c}">${esc(TGH.itemTitle(i))}</b><small>${TGH.RAR[i.rarity].l} ${TGH.SLOTN[i.slot]} · ${TGH.itemLines(i).join(' · ')}</small></div>`).join('');
   await U.modalChoice(r.boss?esc(r.boss.name)+' defeated!':'Victory!',`${heroes}<p class="gold">+${r.gold} gold ${chipsHtml}</p>${loot}${r.boss?'<p class="lvup">A way opens at the top of the map. Step into the portal to take your haul home.</p>':''}`,[{label:'Continue',cls:'gold'}]);
 };
 U.defeat=async function(lost,fee){
+  if(TGH.sound)TGH.sound.play('lose');
   await U.modalChoice('You fainted','<p>Both of you faint in the dark. When you open your eyes you are in your own bed: the villagers found you and carried you home. They could not carry anything else. Every bit of loot and every material you gathered on that trip is lost, but your gear, levels and supplies from town are safe, and you are fully rested.</p>',[{label:'Return home'}]);
 };
 U.homecoming=async function(s){

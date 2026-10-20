@@ -53,6 +53,12 @@ add('Map','elite','Elite','A stronger monster, sometimes with a mutation. It not
 add('Map','boss','Boss','Guards the way out of each land. Notices you from 2 hexes. If one hero starts the fight, the other must spend AP to walk over and help.');
 add('Map','terrain','Terrain','Boulders and mountains block walking and sight. Water and lava cannot be crossed. Plan a route around them.');
 add('Map','pack','Monster pack','A group of up to three monsters. They start a fight when you step next to them.');
+add('Monsters','bossrule','Boss rules','Every boss has one rule to learn: Ward (break it with the weak element or a stun), Charger (stun it mid-charge), Relentless (grows angrier each turn), Summoner (calls minions) or Hunter (three actions, hunts the weakest hero). The rule is on the boss card.');
+add('Map','blessing','Blessings','After you defeat an elite, pick one of three blessings. They last for the rest of the trip and help both heroes (up to 3 per trip). A few have a cost.');
+add('Map','landmod','Land twists','From your third trip on, each land may carry a twist for that trip: Blood Moon, Thick Fog, Bountiful Road and more. The gate shows what each land carries.');
+add('Combat','flank','Flanking','When both heroes are within 2 hexes of an enemy, each attack on it deals 15% more damage.');
+add('Combat','bond','Bond and Tandem Strike','The bond between the heroes fills as they fight together: +3% for each hit you land, +6% when flanking, +4% when you are hit. At 100%, spend 1 AP for a Tandem Strike: both heroes attack the same enemy for 1.5x damage. Both must reach it.');
+add('Combat','helpup','Help Up','A hero who is down can be pulled back up by their partner standing next to them. It costs 1 AP and restores 25% health. If both heroes are down, you faint and are carried home.');
 add('Combat','fatigue','Fatigue','Builds as heroes go deeper and after every fight (+2% battle, +5% elite, +10% boss). Strength and Endurance slow the road build-up. 50%: one hex less per AP. 80%: 33% less damage dealt and 33% more taken. 100%: an injury (sprained ankle, cramps, dizziness, bruised ribs or a headache) until you have been home twice. Camps take 50% off, an Energy Brew 25%, and going home clears it all. Some monsters land Wearying Blows.');
 add('Combat','faint','Fainting','If both heroes fall, the villagers carry them home. You keep your gear and levels, but all loot and materials from that trip are lost.');
 add('Combat','stun','Stun','A stunned unit loses its next turn. Bosses only lose 1 turn no matter how long it should last.');

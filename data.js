@@ -160,15 +160,46 @@ TGH.BIOMES={
 TGH.ADVENTURES=['cave','wilds','wasteland','summit','dark'];
 TGH.ADV_REQ={cave:null,wilds:'cave',wasteland:'wilds',summit:'wasteland',dark:'summit'};
 TGH.CAVE_BEASTS={
-  'The Cave Bear':{kind:'beast',hp:3.2,atk:1.1,mv:2,color:'#6a4a30',eye:'#ffcf5a',blurb:'Slow and enormous. It grows more furious as the fight drags on.',rage:true},
-  'The Giant Boar':{kind:'beast',hp:2.6,atk:1.25,mv:3,color:'#5a4436',eye:'#ff4a3a',blurb:'Paws the ground, then charges across the field for huge damage.',charge:true},
-  'The Night Panther':{kind:'beast',hp:1.7,atk:1.1,mv:5,color:'#2a2632',eye:'#9cff5a',blurb:'The fastest thing in the caves. Acts three times for each of yours.',fast:true},
+  'The Cave Bear':{kind:'beast',hp:3.2,atk:1.1,mv:2,color:'#6a4a30',eye:'#ffcf5a',blurb:'Slow and enormous. It grows more furious as the fight drags on.',rage:true,rule:'relentless'},
+  'The Giant Boar':{kind:'beast',hp:2.6,atk:1.25,mv:3,color:'#5a4436',eye:'#ff4a3a',blurb:'Paws the ground, then charges across the field for huge damage.',charge:true,rule:'charger'},
+  'The Night Panther':{kind:'beast',hp:1.7,atk:1.1,mv:5,color:'#2a2632',eye:'#9cff5a',blurb:'The fastest thing in the caves. Acts three times for each of yours.',fast:true,rule:'hunter'},
 };
 TGH.BOSSES={
-  'The Rotting Oak':{kind:'brute',hp:4.2,atk:1.2,mv:1,range:2,color:'#4d6b2e',eye:'#ffb02e',blurb:'A tree that remembers walking. Its roots reach two hexes.'},
-  'Mother of Ash':{kind:'serpent',hp:4.6,atk:1.3,mv:2,range:3,color:'#4a1c14',eye:'#ffd34a',blurb:'Born in the ember. Spits fire three hexes.'},
-  'The Gatekeeper':{kind:'wraith',hp:5.2,atk:1.35,mv:2,range:4,color:'#5a6a8a',eye:'#9fd6ff',blurb:'It stands at the top of the world. A first, veiled look at what waits beyond.'},
-  'The Unlit King':{kind:'brute',hp:7,atk:1.5,mv:2,range:3,color:'#1c1230',eye:'#ff3a5a',blurb:'He has found you. There is no other path. Your sister is behind him.'},
+  'The Rotting Oak':{kind:'brute',hp:4.2,atk:1.2,mv:1,range:2,color:'#4d6b2e',eye:'#ffb02e',blurb:'A tree that remembers walking. Its roots reach two hexes.',rule:'ward'},
+  'Mother of Ash':{kind:'serpent',hp:4.6,atk:1.3,mv:2,range:3,color:'#4a1c14',eye:'#ffd34a',blurb:'Born in the ember. Spits fire three hexes.',rule:'ward'},
+  'The Gatekeeper':{kind:'wraith',hp:5.2,atk:1.35,mv:2,range:4,color:'#5a6a8a',eye:'#9fd6ff',blurb:'It stands at the top of the world. A first, veiled look at what waits beyond.',rule:'charger'},
+  'The Unlit King':{kind:'brute',hp:7,atk:1.5,mv:2,range:3,color:'#1c1230',eye:'#ff3a5a',blurb:'He has found you. There is no other path. Your sister is behind him.',rule:'summoner'},
+};
+/* Blessings: after an elite falls the party picks one of three. They last for the rest of the run and work on both heroes. Some carry a cost. */
+TGH.BLESS_MAX=3;
+TGH.BLESSINGS={
+  edge:{n:'Moon\u2019s Edge',m:{power:10},d:'+10% damage.'},
+  vow:{n:'Iron Vow',m:{hpPct:15},d:'+15% max health.'},
+  eye:{n:'Hunter\u2019s Eye',m:{crit:6,critdmg:15},d:'+6% crit chance, +15% crit damage.'},
+  grace:{n:'Fleet Grace',m:{eva:8},d:'+8% evasion.'},
+  thirst:{n:'Crimson Thirst',m:{lifesteal:6},d:'Heal for 6% of damage dealt.'},
+  steady:{n:'Steady Breath',m:{fatMul:-.5},d:'Fatigue builds 50% slower.'},
+  glass:{n:'Glass Oath',m:{power:22,hpPct:-15},d:'+22% damage, but -15% max health.',cost:1},
+  greed:{n:'Magpie\u2019s Bargain',m:{goldMul:.3,foeAtk:.1},d:'+30% gold from this trip, but enemies hit 10% harder.',cost:1},
+};
+/* Land modifiers: each land carries a twist for the current trip. Heroes read them on the gate. */
+TGH.LAND_MOD={
+  fog:{n:'Thick Fog',bad:1,d:'Heroes see 1 hex less far, so scouting matters.',sight:-1},
+  bloodmoon:{n:'Blood Moon',bad:1,d:'Enemies deal 20% more damage.',foeAtk:.2},
+  hardened:{n:'Hardened Beasts',bad:1,d:'Enemies have 20% more health.',foeHp:.2},
+  warded:{n:'Warding Winds',bad:1,d:'Enemies resist every element 15% more.',foeRes:15},
+  lean:{n:'Lean Pickings',bad:1,d:'25% less gold from this trip.',goldMul:-.25},
+  bounty:{n:'Bountiful Road',d:'25% more gold from this trip.',goldMul:.25},
+  blessed:{n:'Blessed Moon',d:'+15% experience from fights.',xpMul:.15},
+  calm:{n:'Calm Air',d:'Fatigue builds 40% slower.',fatMul:-.4},
+};
+// Every boss has one rule to learn. It shows on the boss's card and in the Bestiary.
+TGH.BOSS_RULE={
+  ward:{n:'Ward',d:'Takes 50% less damage until hit by its weak element (or stunned). Then it is exposed for 2 of its turns, taking 25% more, before the ward reforms.'},
+  charger:{n:'Charger',d:'Spends a turn gathering power, then rushes or unleashes a crushing blow. A stun cancels it.'},
+  relentless:{n:'Relentless',d:'Grows angrier every turn of the fight. Finish it quickly, or stun it to buy time.'},
+  summoner:{n:'Summoner',d:'Calls a new minion from the dark every 3 rounds, up to a crowd of five.'},
+  hunter:{n:'Hunter',d:'Acts three times for each of yours and always goes for the weakest hero. Guard, and keep your weak hero near the strong one.'},
 };
 TGH.MUTATIONS={
   regen:{n:'Regenerating',d:'heals 8% each turn'},frenzy:{n:'Frenzied',d:'+35% attack'},

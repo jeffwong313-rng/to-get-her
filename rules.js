@@ -48,6 +48,20 @@ TGH.itemLines=it=>{
 };
 TGH.sellValue=it=>Math.round((6+it.ilvl*3)*TGH.RAR[it.rarity].m*(1+(it.plus||0)*.4));
 
+/* ---------- run modifiers: blessings picked this trip and the land's twist ---------- */
+TGH.mods={};
+TGH.syncMods=function(run){
+  const m={};const add=o=>{if(!o)return;for(const k of Object.keys(o))m[k]=(m[k]||0)+o[k]};
+  if(run){for(const id of run.blessings||[])add(TGH.BLESSINGS[id]&&TGH.BLESSINGS[id].m);add(run.mod&&TGH.LAND_MOD[run.mod]);}
+  TGH.mods=m;return m;
+};
+// Which twist a land carries on this trip: the same for everyone, and it changes every time you come home.
+TGH.landMod=function(town,biome){
+  const runs=town.runs||0;if(runs<2)return null;
+  const ids=Object.keys(TGH.LAND_MOD);let h=2166136261;const str=biome+':'+runs;
+  for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}h>>>=0;
+  if(h%5===0)return null;return ids[(h>>>3)%ids.length];
+};
 /* ---------- fatigue (ported from Dark Side) ----------
    Fatigue builds on the road and after fights. 50%+: one hex less per AP. 80%+: deals 33% less and takes 33% more. 100%: an injury
    that lasts until the party has been home twice. Camps take 50 off, Energy Brews 25; the Family Home clears everything. */
@@ -70,6 +84,7 @@ TGH.fatRoll=function(h,k){const R=TGH.fatRange(k);if(!R)return 0;const s=(h.stat
 // Adds fatigue and returns what to tell the player.
 TGH.addFat=function(h,x){
   const out=[];if(!h||h.down||h.hp<=0||x<=0)return out;
+  x=Math.max(1,Math.round(x*(1+((TGH.mods||{}).fatMul||0))));
   const was=h.fat||0;h.fat=Math.min(100,was+x);
   if(was<50&&h.fat>=50)out.push(`${h.name} is tiring (50% fatigue): one hex less per AP.`);
   if(was<80&&h.fat>=80)out.push(`${h.name} is exhausted (80% fatigue): 33% less damage dealt, 33% more taken.`);
@@ -91,7 +106,7 @@ TGH.recalc=function(h,town){
   h.bonus=bonus;
   h.stats={};for(const k of TGH.STATS)h.stats[k]=h.base[k]+(bonus[k]||0);
   const farm=((town&&town.b&&town.b.farm)||0)*6;
-  h.maxHp=Math.round(20+6*h.stats.end+5*h.level+(bonus.hp||0)+farm);
+  h.maxHp=Math.round((20+6*h.stats.end+5*h.level+(bonus.hp||0)+farm)*(1+((TGH.mods||{}).hpPct||0)/100));
   h.maxMp=Math.round((8+3*h.stats.int+2*h.level+h.stats.end+(bonus.mp||0))*(TGH.injOf(h)==='head'?.75:1));
   let arm=0;for(const it of Object.values(h.equip))if(it&&it.slot!=='weapon'&&it.base)arm+=TGH.itemBase(it);
   h.armor=Math.round(arm*(1+h.stats.end*.06)+h.stats.end*.5);
@@ -99,11 +114,11 @@ TGH.recalc=function(h,town){
   h.sightBonus=bonus.sight||0;
   h.move=TGH.movePerAP(h)+(bonus.move||0);
   if(h.move>=3)h.move=Math.max(2,h.move-TGH.fatSlow(h));
-  h.sight=TGH.sightOf(h);
-  h.crit=5+h.stats.lck*1.2+h.stats.agi*.6+(bonus.crit||0);
-  h.critdmg=150+(bonus.critdmg||0);
-  h.eva=Math.min(55,h.stats.agi*1.3+h.stats.lck*.5);
-  h.lifesteal=bonus.lifesteal||0;
+  h.sight=Math.max(2,TGH.sightOf(h)+((TGH.mods||{}).sight||0));
+  h.crit=5+h.stats.lck*1.2+h.stats.agi*.6+(bonus.crit||0)+((TGH.mods||{}).crit||0);
+  h.critdmg=150+(bonus.critdmg||0)+((TGH.mods||{}).critdmg||0);
+  h.eva=Math.min(55,h.stats.agi*1.3+h.stats.lck*.5+((TGH.mods||{}).eva||0));
+  h.lifesteal=(bonus.lifesteal||0)+((TGH.mods||{}).lifesteal||0);
   h.fam=h.equip.weapon?h.equip.weapon.fam:'bare';
   h.wpn=h.equip.weapon?TGH.itemBase(h.equip.weapon):2;
   h.hp=Math.min(h.hp,h.maxHp);h.mp=Math.min(h.mp,h.maxMp);h.ap=Math.min(h.ap,h.maxAp);
@@ -148,8 +163,8 @@ TGH.EASE={};
 TGH.makeFoe=function(name,kindKey,level,o){
   o=o||{};const K=TGH.KINDS[o.kind||kindKey]||TGH.KINDS.beast;
   const biome=TGH.BIOMES[o.biome||'cave'];
-  const ez=(TGH.EASE||{})[o.biome||'cave']||[1,1];
-  let hpM=K.hp*FOE_HP*ez[0],atkM=K.atk*FOE_ATK*ez[1],armM=1,mv=K.mv,range=K.range,scale=1;
+  const ez=(TGH.EASE||{})[o.biome||'cave']||[1,1];const MD=TGH.mods||{};
+  let hpM=K.hp*FOE_HP*ez[0]*(1+(MD.foeHp||0)),atkM=K.atk*FOE_ATK*ez[1]*(1+(MD.foeAtk||0)),armM=1,mv=K.mv,range=K.range,scale=1;
   const def=o.def||null;
   if(def){hpM*=def.hp;atkM*=def.atk;mv=def.mv||mv;range=def.range||range;scale=1.7;armM=1.4}
   if(o.elite){hpM*=1.7;atkM*=1.3;armM*=1.3;scale=1.3}
@@ -160,7 +175,8 @@ TGH.makeFoe=function(name,kindKey,level,o){
     crit:5,critdmg:150,mv,range,maxAp:K.ap+(def&&def.fast?1:0)+(o.elite?0:0),el:biome.el==='physical'?null:biome.el,magic:!!K.magic,
     elite:!!o.elite,boss:!!def,mut:o.mut||null,scale,color:(def&&def.color)||o.color||null,eye:(def&&def.eye)||null,blurb:def&&def.blurb,def:def?name:null,
     c:0,r:0,down:false,st:{}};
-  TGH.applySpecies(f,K,o,biome);
+  f.rule=(def&&def.rule)||null;f.wardUp=f.rule==='ward';f.exposed=0;
+  TGH.applySpecies(f,K,o,o.biome||'cave');
   f.hp=f.maxHp;f.ap=f.maxAp;
   f.xp=Math.round((10+level*6)*(f.boss?7:f.elite?2.5:1));
   f.gold=Math.round(ri(5,10)*Math.pow(level,.8)*(f.boss?6:f.elite?2.5:1));
@@ -183,6 +199,7 @@ TGH.applySpecies=function(f,K,o,biomeKey){
   const hs=hashStr(name),pool=['physical'].concat(TGH.ELEMENTS);
   const a=pool[hs%pool.length];let b=pool[(hs>>>5)%pool.length];if(b===a)b=pool[(hs%pool.length+2)%pool.length];
   f.res={};f.res[a]=f.boss?.3:.25;f.res[b]=-.3;
+  if((TGH.mods||{}).foeRes)for(const e of TGH.ELEMENTS)f.res[e]=(f.res[e]||0)+TGH.mods.foeRes/100;
   // skills: more with the land and with danger
   const shape=K.look||'beast';let n=(TGH.BIOME_SKILLS[biomeKey]||0)+(f.elite?1:0)+(f.boss?2:0);
   const list=[];const team=TGH.TEAM_OF[name];
@@ -261,8 +278,12 @@ TGH.strike=function(att,def,skill,o){
   if(def.st.guard)dmg*=def.st.guard.taken;
   if(def.st.buff&&def.st.buff.def)dmg*=1-def.st.buff.def;
   if(def.mut==='warded')dmg*=.92;
+  if(def.rule==='ward'){
+    if(def.wardUp){dmg*=.5;if(m>1){def.wardUp=false;def.exposed=2;o.wardBroke=true}}
+    else if(def.exposed>0)dmg*=1.25;
+  }
   if(def.team==='hero')dmg*=(o.foeScale||1)*TGH.fatTaken(def);
-  if(hero)dmg*=TGH.fatDmg(att);
+  if(hero)dmg*=TGH.fatDmg(att)*(1+((TGH.mods||{}).power||0)/100)*(o.flank?1.15:1)*(TGH.tandemMult||1);
   dmg=Math.max(1,Math.round(dmg));
   return {hit:true,dmg,crit,mult:m,el};
 };
