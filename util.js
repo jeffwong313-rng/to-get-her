@@ -135,9 +135,9 @@ TGH.genMap=function(biomeKey,seed){
   const mons=B.mons;
   // rarer things first, and relax the spacing if the map is crowded
   const place=(mind,maxRow,minRow)=>{for(let d=mind;d>=1;d--){const h=take(d,maxRow,minRow);if(h)return h}return null};
-  for(let i=0;i<B.elites;i++){const h=place(4,H-7,3);if(!h)break;add('elite',h,{name:pick(mons),mut:pick(Object.keys(TGH.MUTATIONS))})}
+  for(let i=0;i<B.elites;i++){const h=place(4,H-7,3);if(!h)break;add('elite',h,{name:pick(mons)[0],mut:pick(Object.keys(TGH.MUTATIONS))})}
   for(let i=0;i<B.camps;i++)add('camp',place(4,H-4,3));
-  for(let i=0;i<B.packs;i++){const h=place(3,H-5);if(!h)break;add('pack',h,{names:[pick(mons),pick(mons),pick(mons)]})}
+  for(let i=0;i<B.packs;i++){const h=place(3,H-5);if(!h)break;add('pack',h,{names:[pick(mons)[0],pick(mons)[0],pick(mons)[0]]})}
   for(let i=0;i<B.chests;i++)add('chest',place(2,H-4));
   for(let i=0;i<B.qs;i++)add('q',place(2,H-4));
   for(let i=0;i<B.mats;i++)add('mat',place(2,H-3),{mat:pick(B.mat),amt:ri(1,2)});

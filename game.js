@@ -39,14 +39,16 @@ G.newGame=function(setup){
   const heroes=setup.heroes.map(o=>{
     const h=TGH.newHero(o);
     const fam=TGH.bestWeaponFor(h);
-    const names={sword:'Practice Sword',bow:'Practice Bow',staff:'Oak Staff'};
+    const names={sword:'Practice Sword',bow:'Practice Bow',staff:'Oak Staff',fist:'Cloth Wraps'};
     h.equip.weapon={id:uid(),slot:'weapon',fam,rarity:'common',ilvl:1,plus:0,base:5,affixes:[],name:names[fam]};
+    // the family packed what it could: a cap, a tunic and trousers
+    for(const sl of ['helmet','chest','pants'])h.equip[sl]=TGH.makeItem(1,{slot:sl,rarity:'common'});
     TGH.recalc(h,{});h.hp=h.maxHp;h.mp=h.maxMp;h.ap=h.maxAp;
     return h;
   });
   G.s={heroes,relation:setup.relation,sister:setup.sister,town:TGH.newTown(),run:null,seen:{}};
   // a spare bow and staff for whoever wants to try them
-  const spare=[{fam:'bow',name:'Spare Bow'},{fam:'staff',name:'Spare Staff'},{fam:'sword',name:'Spare Sword'}];
+  const spare=[{fam:'bow',name:'Spare Bow'},{fam:'staff',name:'Spare Staff'},{fam:'sword',name:'Spare Sword'},{fam:'fist',name:'Spare Wraps'}];
   for(const sp of spare)if(!heroes.some(h=>h.equip.weapon.fam===sp.fam))G.s.town.pack.push({id:uid(),slot:'weapon',fam:sp.fam,rarity:'common',ilvl:1,plus:0,base:5,affixes:[],name:sp.name});
   G.save();
 };
@@ -162,6 +164,7 @@ G.startHeroTurn=function(i,o){
   if(!o.keepAp){
     tickStatuses(h);
     h.ap=h.maxAp;run.turn.bank=0;
+    if(h.webbed){h.ap=Math.max(1,h.ap-1);h.webbed=false}
     if(G.mode==='battle'&&h.st.apBonus){h.ap+=h.st.apBonus;delete h.st.apBonus}
   }
   G.sel=null;G.pend=null;A.clearAllOverlays();
@@ -171,6 +174,7 @@ G.startHeroTurn=function(i,o){
   if(!o.keepAp)G.save();
 };
 function tickStatuses(u){
+  if(u.st.bleed){const v=u.st.bleed.v;u.hp=Math.max(1,u.hp-v);ui().float(u,'-'+v,'dmg')}
   for(const k of Object.keys(u.st)){
     const v=u.st[k];if(v&&typeof v==='object'&&v.n!=null){v.n--;if(v.n<=0)delete u.st[k]}
     else if(k==='imbue'){u.st.imbue--;if(u.st.imbue<=0)delete u.st.imbue}
@@ -391,6 +395,7 @@ G.beginBattle=async function(ent,trigHero){
   ui().battleBanner(foes);
   A.fx.ring(A.unitPos(foes[0]),'#ff6a6a',700);
   await sleep(1300);
+  await G.scoutBattleStart(foes);
   // Elites and bosses that aggro a lone hero leave the partner to catch up. The trigger hero keeps the rest of their turn.
   G.busy=false;
   G.startHeroTurn(run.turn.hero,{keepAp:true});
@@ -416,6 +421,12 @@ G.chooseAction=function(kind,skill){
   if(skill&&h.mp<TGH.skillMp(h,skill)){ui().toast('Not enough mana.');return}
   G.sel={kind,skill};
   const tgt=skill?skill.tgt:'enemy';
+  if(tgt==='around'){
+    const near=G.foes().filter(f=>dist(f,h)<=(skill.aoe||1)).sort((a,b)=>dist(a,h)-dist(b,h))[0];
+    if(!near){ui().toast('No enemy next to you.');G.sel=null;return}
+    G.pend={type:'act',skill,target:near};
+    A.setOverlay('preview',G.affected(h,skill,near).map(x=>({c:x.c,r:x.r})),'#ff3a3a');ui().refresh();return;
+  }
   if(tgt==='self'||tgt==='party'){G.pend={type:'act',skill,target:h,self:true};ui().refresh();return}
   const rg=G.rangeOf(h,skill);
   A.setOverlay('range',G.hexesInRange(h,rg),tgt==='enemy'?'#ff6a6a':'#6aff9a');
@@ -476,6 +487,7 @@ G.confirm=function(){
 G.affected=function(h,skill,target){
   const out=[];
   const aoe=skill&&skill.aoe||0;
+  if(skill&&skill.tgt==='around'){const o=G.foes().filter(f=>dist(f,h)<=aoe);return o.length?o:[target]}
   if(!aoe||skill.tgt!=='enemy'){return [target]}
   for(const f of G.foes())if(dist(f,target)<=aoe)out.push(f);
   return out.length?out:[target];
@@ -491,7 +503,7 @@ G.doAction=async function(h,skill,target){
   h.ap-=apCost;h.mp-=mp;ui().refresh();
   A.focus(target.c,target.r);
   try{
-    if(!skill||skill.tgt==='enemy')await G.attackSequence(h,skill,target);
+    if(!skill||skill.tgt==='enemy'||skill.tgt==='around')await G.attackSequence(h,skill,target);
     else await G.supportSequence(h,skill,target);
   }finally{}
   // clean up deaths
@@ -540,6 +552,7 @@ G.attackSequence=async function(h,skill,target){
       if(skill&&skill.weakenAtk&&!t.down){t.st.weakenAtk={n:skill.weakenAtk.n,v:skill.weakenAtk.v};ui().float(t,'Weakened','dbf')}
       if(skill&&skill.exec&&!t.down&&!t.boss&&t.hp<t.maxHp*skill.exec){t.hp=0;ui().float(t,'Execute!','crit')}
       if(t.hp<=0&&!t.down)kills+=await killFoe(h,t);
+      if(t.ab==='spikes'&&!t.down&&dist(h,t)<=1){const ref=Math.max(1,Math.round(dmg*Math.min(25,t.abV)/100));h.hp=Math.max(1,h.hp-ref);ui().float(h,'-'+ref,'dmg')}
       if(t.mut==='thorns'&&!t.down){const ref=Math.max(1,Math.round(dmg*.1));h.hp=Math.max(1,h.hp-ref);ui().float(h,'-'+ref,'dmg')}
     }
     if(nHits>1)await sleep(200);
@@ -577,7 +590,13 @@ function applyStun(t,n){
 async function killFoe(h,t){
   t.down=true;tell(`${t.name} is defeated.`,'good');
   R_().foesKilled++;
+  G.scoutKill(t);
   await A.die(t);
+  if(t.ab==='gasp'){
+    const hs=G.s.heroes.filter(x=>!x.down);
+    if(hs.length){const v=pick(hs),a=Math.max(1,Math.round(t.atk*t.abV/100*.6));v.hp=Math.max(1,v.hp-a);
+      ui().float(t,t.abName+'!','dbf');ui().float(v,'-'+a,'dmg');A.fx.burst(A.unitPos(v),'#c9c0a0',12);A.hurt(v,false)}
+  }
   return 1;
 }
 G.supportSequence=async function(h,skill,target){
@@ -591,6 +610,7 @@ G.supportSequence=async function(h,skill,target){
     }else for(const t of group){
       const amt=TGH.healAmount(h,t,skill);t.hp=Math.min(t.maxHp,t.hp+amt);
       A.fx.sparkles(A.unitPos(t),'#8fffc0',14,.8);ui().float(t,'+'+amt,'heal');
+      if(skill.mpGain){const m=Math.round(t.maxMp*skill.mpGain);t.mp=Math.min(t.maxMp,t.mp+m);ui().float(t,'+'+m+' MP','mana')}
     }
     if(skill.id==='wind'){const amt=Math.round(h.maxHp*skill.healPct);h.hp=Math.min(h.maxHp,h.hp+amt)}
   }
@@ -631,6 +651,38 @@ G.useItem=async function(id,target){
   await sleep(500);G.busy=false;ui().refresh();G.checkAutoEnd();
 };
 
+/* ---------- scouting: perception teaches the party what monsters can do ---------- */
+G.bestiary=()=>{const t=G.s.town;return t.bestiary||(t.bestiary={})};
+G.knowLv=name=>{const e=G.bestiary()[name];return e?e.lv:0};
+G.scoutChance=()=>Math.min(90,10+Math.max(...G.s.heroes.map(h=>h.stats.per))*3);
+G.scoutRaise=function(f,guaranteed){
+  const e=G.bestiary()[f.name]||(G.bestiary()[f.name]={lv:1,kills:0,seen:0});
+  if(e.lv>=4)return false;
+  e.lv++;
+  ui().float(f,'🔍 '+TGH.SCOUT_LV[e.lv],'scout');
+  tell(`🔍 Your party studies the ${f.name}: ${TGH.SCOUT_LV[e.lv]} learned.`,'good');
+  return true;
+};
+G.snapFoe=f=>({name:f.name,kind:f.kind,el:f.el,level:f.level,hp:f.maxHp,atk:f.atk,armor:f.armor,range:f.range,mv:f.mv,eva:f.eva,res:f.res||{},skills:f.skills||[],ab:f.ab,abV:f.abV,abName:f.abName,habit:f.habit,boss:f.boss,elite:f.elite,biome:f.biomeKey||null,look:f.look,color:f.color});
+G.scoutBattleStart=async function(foes){
+  const names=new Set();
+  for(const f of foes){
+    const be=G.bestiary();const e=be[f.name]||(be[f.name]={lv:0,kills:0,seen:0});
+    if(!names.has(f.name)){e.seen++;if(e.lv<1)e.lv=1;names.add(f.name);e.snap=G.snapFoe(f)}
+  }
+  const done=new Set();
+  for(const f of foes){
+    if(done.has(f.name))continue;done.add(f.name);
+    if(rnd()*100<G.scoutChance()){G.scoutRaise(f);await sleep(350)}
+  }
+};
+G.scoutKill=function(f){
+  const e=G.bestiary()[f.name]||(G.bestiary()[f.name]={lv:1,kills:0,seen:1});
+  e.kills++;
+  const sure=e.kills%3===0;
+  if(sure||rnd()*100<G.scoutChance()/2)G.scoutRaise(f,sure);
+};
+
 /* ---------- the foes' turn ---------- */
 G.foePhase=async function(){
   const run=R_(),b=run.battle;if(!b)return;
@@ -640,7 +692,9 @@ G.foePhase=async function(){
     if(!run.battle)return;
     // statuses tick at the start of the foe's own turn
     for(const k of Object.keys(f.st)){const v=f.st[k];if(k==='stun')continue;if(v&&v.n!=null){v.n--;if(v.n<=0)delete f.st[k]}}
+    f.packN=b.foes.filter(x=>x!==f&&!x.down).length;
     if(f.mut==='regen'&&f.hp<f.maxHp){const a=Math.round(f.maxHp*.08);f.hp=Math.min(f.maxHp,f.hp+a);ui().float(f,'+'+a,'heal')}
+    if(f.ab==='regen'&&f.hp<f.maxHp){const a=Math.max(1,Math.round(f.maxHp*f.abV/100));f.hp=Math.min(f.maxHp,f.hp+a);ui().float(f,'+'+a,'heal')}
     if(f.def==='The Cave Bear'){f.atk=Math.round(f.atk*1.07)}
     if(f.st.stun){f.st.stun--;if(f.st.stun<=0)delete f.st.stun;ui().float(f,'Stunned','dbf');await sleep(500);continue}
     f.ap=f.maxAp;
@@ -655,17 +709,100 @@ const targetFor=f=>{
   const heroes=G.s.heroes.filter(h=>!h.down);if(!heroes.length)return null;
   const taunt=heroes.filter(h=>(h.st.guard&&h.st.guard.taunt)||(h.st.buff&&h.st.buff.taunt));
   const pool=taunt.length?taunt:heroes;
-  return pool.sort((a,b)=>dist(f,a)-dist(f,b)||a.hp/a.maxHp-b.hp/b.maxHp)[0];
+  const near=(a,b)=>dist(f,a)-dist(f,b)||a.hp/a.maxHp-b.hp/b.maxHp;
+  if(f.habit==='weak'&&!taunt.length)return pool.slice().sort((a,b)=>a.hp-b.hp)[0];
+  if(f.habit==='back'&&!taunt.length)return pool.slice().sort((a,b)=>a.maxHp-b.maxHp)[0];
+  if(f.habit==='fixate'&&f.fixTgt){const t=pool.find(h=>h.name===f.fixTgt);if(t)return t}
+  return pool.slice().sort(near)[0];
 };
+const foesAlive=()=>G.foes().filter(f=>!f.down);
+// Tries one of the monster's skills. Returns true if it used the turn's action.
+async function foeSkill(f,tg,d){
+  const b=R_().battle;f.cd=f.cd||{};
+  const ok=k=>!(f.cd[k]>b.round);
+  const allies=foesAlive().filter(x=>x!==f);
+  const opts=[];
+  for(const k of f.skills||[]){
+    if(!ok(k))continue;
+    if(k==='rend'&&d<=1)opts.push(k);
+    else if(k==='howl'&&allies.length&&!f.usedHowl)opts.push(k);
+    else if(k==='harden'&&!f.st.guard&&f.hp<f.maxHp*.8)opts.push(k);
+    else if(k==='drain'&&d<=Math.max(1,f.range)&&f.hp<f.maxHp)opts.push(k);
+    else if(k==='sweep'&&d<=2)opts.push(k);
+    else if(k==='curse'&&d<=Math.max(1,f.range))opts.push(k);
+    else if(k==='web'&&d<=Math.max(1,f.range))opts.push(k);
+    else if(k==='ooze'&&f.hp<f.maxHp*.7)opts.push(k);
+    else if(k==='shove'&&d<=1)opts.push(k);
+    else if(k==='pull'&&d>=2&&d<=4)opts.push(k);
+    else if(k==='mend'&&allies.some(x=>x.hp<x.maxHp*.7))opts.push(k);
+    else if(k==='rally'&&allies.length)opts.push(k);
+    else if(k==='guard'&&allies.some(x=>!x.st.guard))opts.push(k);
+    else if(k==='flurry'&&d<=1)opts.push(k);
+    else if(k==='windup'&&d<=3&&f.ap>=f.maxAp)opts.push(k);
+    else if(k==='relentless'&&(f.furyN||0)<5&&f.hp<f.maxHp*.9)opts.push(k);
+  }
+  if(!opts.length)return false;
+  const k=pick(opts),S=TGH.FOE_SKILLS[k];
+  f.cd[k]=b.round+(k==='harden'||k==='relentless'?3:2);
+  ui().float(f,S.n,'dbf');tell(`${f.name} uses ${S.n}!`,'bad');
+  await sleep(380);
+  const hurtHero=async(mult,extra)=>{const r=await G.foeStrike(f,tg,mult,null,extra);return r};
+  if(k==='rend'){await hurtHero(.75,(r)=>{if(r.hit&&tg.hp>0){tg.st.bleed={n:3,v:Math.max(1,Math.round(f.atk*.14))};ui().float(tg,'Bleeding','dbf')}});f.ap-=1}
+  else if(k==='howl'){f.usedHowl=true;for(const x of foesAlive()){x.st.buff={dmg:.2,n:3};ui().float(x,'Rallied','buff')}A.fx.ring(A.unitPos(f),'#ff6a6a',600);f.ap-=1}
+  else if(k==='harden'){f.st.guard={taken:.6,n:2};ui().float(f,'Hardened','buff');f.ap-=1}
+  else if(k==='drain'){await hurtHero(.6,(r)=>{if(r.hit){const a=Math.round(r.dmg/2);f.hp=Math.min(f.maxHp,f.hp+a);ui().float(f,'+'+a,'heal')}});f.ap-=1}
+  else if(k==='sweep'){
+    for(const h of G.s.heroes.filter(x=>!x.down&&dist(f,x)<=2))await G.foeStrike(f,h,.6);
+    f.ap-=2;
+  }
+  else if(k==='curse'){await hurtHero(.45,(r)=>{if(r.hit){tg.st.weakenAtk={n:2,v:.25};ui().float(tg,'Withered','dbf')}});f.ap-=1}
+  else if(k==='web'){await hurtHero(.4,(r)=>{if(r.hit){tg.webbed=true;ui().float(tg,'Webbed: -1 AP','dbf')}});f.ap-=1}
+  else if(k==='ooze'){const a=Math.round(f.maxHp*.08);f.hp=Math.min(f.maxHp,f.hp+a);ui().float(f,'+'+a,'heal');f.ap-=1}
+  else if(k==='shove'){await hurtHero(1.0,async(r)=>{if(r.hit&&tg.hp>0)await shoveHero(f,tg,2)});f.ap-=2}
+  else if(k==='pull'){await pullHero(f,tg);await G.foeStrike(f,tg,.6);f.ap-=2}
+  else if(k==='mend'){const t=allies.sort((a,c)=>a.hp/a.maxHp-c.hp/c.maxHp)[0];const a=Math.round(t.maxHp*.18);t.hp=Math.min(t.maxHp,t.hp+a);ui().float(t,'+'+a,'heal');A.fx.sparkles(A.unitPos(t),'#9fffd0',10,.8);f.ap-=1}
+  else if(k==='rally'){const t=pick(allies);t.st.buff={dmg:.35,n:2};ui().float(t,'Rallied','buff');f.ap-=1}
+  else if(k==='guard'){const t=allies.filter(x=>!x.st.guard).sort((a,c)=>a.hp/a.maxHp-c.hp/c.maxHp)[0];t.st.guard={taken:.5,n:2};ui().float(t,'Shielded','buff');f.ap-=1}
+  else if(k==='flurry'){await G.foeStrike(f,tg,.5);if(!tg.down)await G.foeStrike(f,tg,.5);f.ap-=1}
+  else if(k==='windup'){f.charging=true;ui().float(f,'Gathering power…','dbf');A.fx.ring(A.unitPos(f),'#ffcf4a',900);f.ap=0}
+  else if(k==='relentless'){f.furyN=Math.min(5,(f.furyN||0)+1);ui().float(f,'Fury +'+f.furyN,'buff');A.fx.ring(A.unitPos(f),'#ff4a3a',600);f.ap-=1}
+  await sleep(150);
+  return true;
+}
+async function shoveHero(f,h,n){
+  const run=R_(),m=run.map;
+  for(let i=0;i<n;i++){
+    const opts=TGH.neighbors(h.c,h.r,m.w,m.h).filter(p=>!TGH.BLOCKS_MOVE.has(m.tiles[idx(p.c,p.r)])&&!unitAt(p.c,p.r)&&dist(p,f)>dist(h,f));
+    if(!opts.length)break;
+    const p=opts[0];h.c=p.c;h.r=p.r;A.placeUnit(h,p.c,p.r);
+  }
+  ui().float(h,'Shoved','dbf');await sleep(250);G.computeVis();
+}
+async function pullHero(f,h){
+  const run=R_(),m=run.map;
+  const opts=TGH.neighbors(f.c,f.r,m.w,m.h).filter(p=>!TGH.BLOCKS_MOVE.has(m.tiles[idx(p.c,p.r)])&&!unitAt(p.c,p.r)).sort((a,b)=>dist(a,h)-dist(b,h));
+  if(!opts.length)return;
+  const p=opts[0];h.c=p.c;h.r=p.r;A.placeUnit(h,p.c,p.r);
+  ui().float(h,'Dragged in','dbf');await sleep(250);G.computeVis();
+}
 G.foeAct=async function(f){
   const K=TGH.KINDS[f.kind]||TGH.KINDS.beast;
   let guard=0;
+  if(f.charging){
+    f.charging=false;
+    ui().float(f,'UNLEASH','crit');tell(`${f.name} unleashes its stored power!`,'bad');
+    A.fx.ring(A.unitPos(f),'#ffcf4a',700);await sleep(500);
+    for(const h of G.s.heroes.filter(x=>!x.down))await G.foeStrike(f,h,1.5);
+    f.ap=0;return;
+  }
   while(f.ap>0&&guard++<6){
     const tg=targetFor(f);if(!tg)return;
     const d=dist(f,tg),rg=f.range;
     const canHit=d<=rg&&(d<=1||TGH.los(R_().map,f,tg));
-    const heavy=K.look==='brute'||f.boss;
+    const heavy=K.look==='brute'||f.boss||f.ab==='crusher';
     const cost=heavy?2:1;
+    // monsters with skills use them about half the time
+    if((f.skills||[]).length&&f.ap>=1&&rnd()<(canHit?.5:.35)){if(await foeSkill(f,tg,d))continue}
     if(f.def==='The Giant Boar'&&d>=3&&f.ap>=2&&!canHit){
       // charge: paw the ground, then rush the target
       ui().float(f,'Pawing the ground…','dbf');await sleep(500);
@@ -687,9 +824,12 @@ G.foeMove=async function(f,tg,steps,range){
   const res=TGH.search(m,{c:f.c,r:f.r},pass,steps);
   // the reachable hex that ends nearest the target (inside range if possible)
   let best=null,bd=1e9;
+  // true walking distance to the target, so monsters walk around boulders instead of pressing against them
+  const back=TGH.search(m,{c:tg.c,r:tg.r},(c,r)=>!TGH.BLOCKS_MOVE.has(m.tiles[idx(c,r)]),60);
   for(const [k] of res.dist){
     const c=k%m.w,r=Math.floor(k/m.w),d=dist({c,r},tg),inR=range&&d<=range&&(d<=1||TGH.los(m,{c,r},tg));
-    const score=(inR?-100:0)+d*2+res.dist.get(k)*.01;
+    const wd=back.dist.has(k)?back.dist.get(k):d*3+20;
+    const score=(inR?-100:0)+wd*2+res.dist.get(k)*.01;
     if(score<bd){bd=score;best={c,r}}
   }
   if(!best||(best.c===f.c&&best.r===f.r))return false;
@@ -699,7 +839,7 @@ G.foeMove=async function(f,tg,steps,range){
   G.computeVis();
   return true;
 };
-G.foeStrike=async function(f,tg,mult,label){
+G.foeStrike=async function(f,tg,mult,label,extra){
   const ranged=f.range>1,magic=f.magic||f.kind==='spider';
   if(label)ui().float(f,label,'dbf');
   A.focus(tg.c,tg.r);
@@ -711,13 +851,16 @@ G.foeStrike=async function(f,tg,mult,label){
   const r=TGH.strike(f,tg,{mult:mult,acc:92,crit:0},{});
   if(!r.hit){ui().float(tg,'Miss','miss');tell(`${f.name} misses ${tg.name}.`)}
   else{
-    tg.hp=Math.max(0,tg.hp-r.dmg);
+    tg.hp=Math.max(0,tg.hp-r.dmg);f.fixTgt=tg.name;
+    if(f.ab==='leech'){const a=Math.max(1,Math.round(r.dmg*f.abV/100));f.hp=Math.min(f.maxHp,f.hp+a);ui().float(f,'+'+a,'heal')}
     ui().float(tg,(r.crit?'CRIT ':'')+r.dmg,r.crit?'crit':'dmg');tell(`${f.name} hits ${tg.name} for ${r.dmg}.`,'bad');
     A.fx.burst(A.unitPos(tg),'#ff8a6a',10);A.hurt(tg,r.crit);
     if(tg.hp<=0){tg.down=true;tell(tg.name+' is down!','bad');await A.die(tg)}
   }
   if(l){l.release();await l.done}
+  if(extra)await extra(r);
   ui().refresh();
+  return r;
 };
 
 /* ---------- winning, losing, going home ---------- */

@@ -9,6 +9,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     $('#b-fast').onclick=()=>{TGH.game.settings.fast=!TGH.game.settings.fast;TGH.art.fast=TGH.game.settings.fast;$('#b-fast').classList.toggle('on',TGH.art.fast);TGH.game.save()};
     $('#b-zin').onclick=()=>TGH.art.setZoom(TGH.art.zoom*.85);
     $('#b-zout').onclick=()=>TGH.art.setZoom(TGH.art.zoom*1.18);
+    $('#b-help').onclick=()=>TGH.help.open();$('#b-best').onclick=()=>{if(TGH.game.s)TGH.ui.bestiary()};
     $('#b-center').onclick=()=>{const h=TGH.game.active&&TGH.game.s&&TGH.game.s.run?TGH.game.active():null;if(h)TGH.art.focus(h.c,h.r)};
     $('#b-menu').onclick=()=>TGH.ui.settings();
     TGH.ui.showTitle();

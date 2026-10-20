@@ -140,18 +140,18 @@ U.renderActionBar=function(){
   const rg=TGH.attackRange(h);
   let btns='';
   if(battle){
-    btns+=`<button class="act atk" data-a="attack" ${dis||(apOk(1)?'':'disabled')}><b>Attack</b><small>1 AP · reach ${rg}</small></button>`;
-    btns+=`<button class="act" data-a="skills" ${dis}><b>Skills</b><small>${h.skills.length} known</small></button>`;
-    btns+=`<button class="act" data-a="items" ${dis}><b>Items</b><small>1 AP</small></button>`;
-    btns+=`<button class="act" data-a="guard" ${dis||(apOk(1)?'':'disabled')}><b>Guard</b><small>1 AP</small></button>`;
+    btns+=`<button class="act atk" data-tip="Basic attack with your weapon. Damage scales with the weapon\u2019s stat (swords STR, bows AGI, staves INT, fists END)." data-a="attack" ${dis||(apOk(1)?'':'disabled')}><b>Attack</b><small>1 AP · reach ${rg}</small></button>`;
+    btns+=`<button class="act" data-tip="Skills you have learned. Each costs AP and usually mana. Tap the ? in the hero window for what unlocks them." data-a="skills" ${dis}><b>Skills</b><small>${h.skills.length} known</small></button>`;
+    btns+=`<button class="act" data-tip="Use potions and scrolls from your pack." data-a="items" ${dis}><b>Items</b><small>1 AP</small></button>`;
+    btns+=`<button class="act" data-tip="Brace for the enemy turn: take less damage and draw attacks toward you." data-a="guard" ${dis||(apOk(1)?'':'disabled')}><b>Guard</b><small>1 AP</small></button>`;
   }else{
-    btns+=`<button class="act" data-a="skills" ${dis}><b>Skills</b><small>${h.skills.length} known</small></button>`;
-    btns+=`<button class="act" data-a="items" ${dis}><b>Items</b><small>potions</small></button>`;
-    btns+=`<button class="act" data-a="hero" ${dis}><b>Hero</b><small>${(h.points||h.skillPoints)?'points to spend!':'stats · gear'}</small></button>`;
+    btns+=`<button class="act" data-tip="Skills you have learned. Each costs AP and usually mana. Tap the ? in the hero window for what unlocks them." data-a="skills" ${dis}><b>Skills</b><small>${h.skills.length} known</small></button>`;
+    btns+=`<button class="act" data-tip="Use potions and scrolls from your pack." data-a="items" ${dis}><b>Items</b><small>potions</small></button>`;
+    btns+=`<button class="act" data-tip="Open the hero window: stats, skills and gear." data-a="hero" ${dis}><b>Hero</b><small>${(h.points||h.skillPoints)?'points to spend!':'stats · gear'}</small></button>`;
     const near=G.s.heroes.every(x=>run.map.start.some(p=>TGH.dist(x,p)<=2));
     if(near)btns+=`<button class="act" data-a="home" ${dis}><b>Go Home</b><small>bank loot</small></button>`;
   }
-  btns+=`<button class="act end" data-a="end" ${dis}><b>End Turn</b><small>${battle?(i===0&&!G.s.heroes[1].down?'then '+esc(G.s.heroes[1].name):'then enemies'):'pass to '+esc(G.s.heroes[1-i].name)}</small></button>`;
+  btns+=`<button class="act end" data-tip="Finish this hero\u2019s turn. Unspent AP is lost, except moves carried over this turn." data-a="end" ${dis}><b>End Turn</b><small>${battle?(i===0&&!G.s.heroes[1].down?'then '+esc(G.s.heroes[1].name):'then enemies'):'pass to '+esc(G.s.heroes[1-i].name)}</small></button>`;
   // preview panel: what a tap on the map is about to do
   let pend='';
   const p=G.pend;
@@ -238,15 +238,45 @@ U.pickHero=function(title,wantDown){
 U.pickElement=function(title){
   return U.modalChoice(title,'Choose an element. Each beats one and loses to another: Fire → Grass → Fighting → Thunder → Ice → Fire.',TGH.ELEMENTS.map(e=>({label:cap(e),v:e,col:TGH.EL_COL[e]})));
 };
+// What the party knows about a monster, in four stages learned by scouting (perception).
+U.bestiary=function(){
+  const be=G.bestiary(),names=Object.keys(be);
+  const all=[];for(const k of TGH.ADVENTURES){const B=TGH.BIOMES[k];for(const m of B.mons)all.push({n:m[0],b:B.name})}
+  const seen=names.length;
+  const cards=names.sort().map(n=>{const e=be[n],sn=e.snap;
+    if(!sn)return '';
+    return `<div class="mcard"><h4>${esc(n)} <span class="lv">Lv ${sn.level}</span>${sn.boss?'<span class="tag boss">BOSS</span>':''}</h4><div class="ic-s">Defeated ${e.kills} · met ${e.seen} time${e.seen===1?'':'s'}</div>${U.monsterInfo(sn,e.lv)}</div>`}).join('');
+  const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="mbox wide"><h2>Bestiary</h2><div class="mbody scroll"><p>Monsters you have met. A hero with high <b>Perception</b> studies them in battle: a 🔍 appears when you learn something new. Every third kill of a kind always teaches you more. ${seen} of ${all.length+7} kinds met.</p><div class="bestgrid">${cards||'<p class="empty">Nothing yet. Go meet some monsters.</p>'}</div></div><div class="mbtns"><button class="mb" id="bclose">Close</button></div></div>`;
+  document.body.appendChild(m);m.querySelector('#bclose').onclick=()=>m.remove();
+};
+U.monsterInfo=function(m,lv){
+  const q=t=>`<span class="unk" title="Not scouted yet. Perception reveals more with every fight.">? ${t}</span>`;
+  const el=m.el,beats=el?TGH.ELEMENTS.find(e=>TGH.BEATS[e]===el):null;
+  let h=`<div class="mi-row">${TGH.SCOUT_LV.map((n,i)=>i?`<i class="${i<=lv?'on':''}" title="${n}"></i>`:'').join('')}<span class="mi-lv">${lv>=4?'Fully studied':'Scouted '+lv+'/4'}</span></div>`;
+  h+=`<div class="ic-s">${cap(m.kind)}${el?` · ${cap(el)}, weak to <span style="color:${TGH.EL_COL[beats]}">${cap(beats)}</span>`:' · no element'}</div>`;
+  if(lv>=2){
+    const rs=Object.keys(m.res||{});
+    h+=`<div class="ic-s">Reach ${m.range} · ${m.mv} hex/AP · armor ${m.armor} · attack ${m.atk}</div>`;
+    h+=`<div class="ic-s">${rs.map(k=>{const v=m.res[k];return v>0?`<span class="rs good">Resists ${cap(k)} ${Math.round(v*100)}%</span>`:`<span class="rs bad">Weak to ${cap(k)} ${Math.round(-v*100)}%</span>`}).join(' ')||'No special resistances.'}</div>`;
+  }else h+=`<div class="ic-s">${q('Stats & resistances')}</div>`;
+  if(lv>=3){
+    h+=`<div class="ic-s"><b>Skills:</b> ${(m.skills&&m.skills.length)?m.skills.map(k=>`<span class="rs" data-tip="${esc(TGH.FOE_SKILLS[k].d)}">${TGH.FOE_SKILLS[k].n}</span>`).join(' '):'none'}</div>`;
+  }else h+=`<div class="ic-s">${q('Skills')}</div>`;
+  if(lv>=4&&m.ab){
+    h+=`<div class="ic-s"><b>${esc(m.abName)}:</b> ${TGH.ABIL[m.ab](m.abV)}</div><div class="ic-s"><b>Habit:</b> ${TGH.HABIT[m.habit]}</div>`;
+  }else h+=`<div class="ic-s">${q('Signature ability & habit')}</div>`;
+  return h;
+};
 U.inspect=function(u){
   const box=$('#infocard');
   if(u.team==='hero'){box.classList.remove('show');return}
-  const el=u.el;const beats=el?TGH.ELEMENTS.find(e=>TGH.BEATS[e]===el):null;
+  const lv=Math.max(G.knowLv(u.name),1);
   box.innerHTML=`<div class="ic-n">${esc(u.name)} <span class="lv">Lv ${u.level}</span>${u.boss?'<span class="tag boss">BOSS</span>':u.elite?'<span class="tag elite">ELITE</span>':''}</div>
-    <div class="bar hp"><i style="width:${pct(u.hp,u.maxHp)}%"></i><b>${u.hp} / ${u.maxHp}</b></div>
-    <div class="ic-s">Reach ${u.range} · ${u.mv} hex${u.mv>1?'es':''}/AP · armor ${u.armor}${el?` · ${cap(el)}, weak to <span style="color:${TGH.EL_COL[beats]}">${cap(beats)}</span>`:''}</div>
+    <div class="bar hp"><i style="width:${pct(u.hp,u.maxHp)}%"></i><b>${lv>=2?u.hp+' / '+u.maxHp:Math.round(u.hp/u.maxHp*100)+'%'}</b></div>
+    ${U.monsterInfo(u,lv)}
     ${u.mut?`<div class="ic-s">${TGH.MUTATIONS[u.mut].n}: ${TGH.MUTATIONS[u.mut].d}</div>`:''}${u.blurb?`<div class="ic-s">${esc(u.blurb)}</div>`:''}`;
-  box.classList.add('show');clearTimeout(U._ic);U._ic=setTimeout(()=>box.classList.remove('show'),5000);
+  box.classList.add('show');clearTimeout(U._ic);U._ic=setTimeout(()=>box.classList.remove('show'),7000);
 };
 
 /* ---------- health bars floating over units ---------- */
