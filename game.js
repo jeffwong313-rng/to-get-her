@@ -348,7 +348,7 @@ G.useQuestion=async function(e,h){
     A.fx.sparkles(A.unitPos(h),'#8fe0ff',20,1);
     await ui().eventBox('A quiet spring','Clear water bubbles from the rock. Both heroes drink and recover 30% health and mana.',[{label:'Refreshed'}]);
   }else if(kind==='cache'){
-    const gold=Math.round(ri(12,28)*Math.pow(lvl,.85)),mat=pick(TGH.BIOMES[run.biome].mat);run.loot.gold+=gold;run.loot.mats[mat]=(run.loot.mats[mat]||0)+1;
+    const gold=Math.round(ri(12,28)*Math.pow(lvl,.85)),mat=TGH.rollMat(run.biome);run.loot.gold+=gold;TGH.addMat(run.loot.mats,mat,1);
     await ui().eventBox('A hidden cache','Someone left supplies under a loose stone: '+gold+' gold and 1 '+TGH.MATS[mat].n+'.',[{label:'Take it'}]);
   }else if(kind==='stranger'){
     const bet=Math.max(10,Math.round(lvl*8));
@@ -498,10 +498,25 @@ G.tapHex=function(c,r){
   }
   if(u&&u.team==='hero'){A.focus(u.c,u.r);ui().inspect(u);return}
   // move
-  if(G.pend&&G.pend.type==='move'&&G.pend.c===c&&G.pend.r===r){G.confirm();return}
-  const plan=G.planMove(h,c,r);
-  if(!plan){const e=entAt(c,r);if(e&&isMonsterEnt(e)){ui().toast('Walk up to it to start a fight.');return}A.clearOverlay('path');G.pend=null;ui().refresh();return}
-  G.pend={type:'move',c,r,plan};
+  if(G.pend&&G.pend.type==='move'&&((G.pend.c===c&&G.pend.r===r)||(G.pend.partial&&G.pend.tapC===c&&G.pend.tapR===r))){G.confirm();return}
+  let plan=G.planMove(h,c,r),tc=c,tr=r,partial=false;
+  if(!plan){
+    const e=entAt(c,r);if(e&&isMonsterEnt(e)){ui().toast('Walk up to it to start a fight.');return}
+    // too far: show how far along the way you can actually get
+    const budget=G.moveBudget(h),map=R_().map;
+    let stop=null;
+    const full=TGH.pathTo(map,G.reachMap(h,999),{c,r});
+    if(full&&full.length>budget&&budget>0)stop=full[budget-1];
+    else if(!full){
+      const res=G.reachMap(h,budget);let bd=dist(h,{c,r}),bs=1e9;
+      for(const [k,d] of res.dist){if(d===0)continue;const cc=k%map.w,rr=Math.floor(k/map.w),dd=dist({c:cc,r:rr},{c,r});if(dd<bd||(dd===bd&&d<bs)){bd=dd;bs=d;stop={c:cc,r:rr}}}
+    }
+    if(stop)plan=G.planMove(h,stop.c,stop.r);
+    if(!plan||!plan.ok){A.clearOverlay('path');G.pend=null;ui().toast('You cannot get any closer this turn.');ui().refresh();return}
+    tc=stop.c;tr=stop.r;partial=true;
+    ui().toast('Too far to reach this turn. Showing how far you can walk: '+plan.L+' hex'+(plan.L===1?'':'es')+'. Tap again or Go to walk there.');
+  }
+  G.pend={type:'move',c:tc,r:tr,plan,partial,tapC:c,tapR:r};
   A.setPath(plan.path,{c:h.c,r:h.r},plan.ok);
   ui().refresh();
 };
@@ -967,8 +982,14 @@ G.victory=async function(){
   else if(chance(.2+s.heroes.reduce((a,h)=>a+h.stats.lck,0)*.005))items.push(...G.rollLoot(lvl,.1,1));
   const mats={};
   const B=TGH.BIOMES[run.biome];
-  const nm=wasBoss?3:wasElite?2:chance(.45)?1:0;
-  for(let i=0;i<nm;i++){const k=pick(B.mat);mats[k]=(mats[k]||0)+1;run.loot.mats[k]=(run.loot.mats[k]||0)+1}
+  // every enemy drops its own materials, no pickup needed
+  for(const f of killed){
+    const m=f.boss?4:f.elite?2.2:1,sc=1+(run.map.h/40)*.2,rf=(a,b)=>a+Math.random()*(b-a);
+    if(Math.random()<.85)TGH.addMat(mats,TGH.EL_MAT[B.el]||'stone',rf(.2,.5)*m*sc);
+    const km=TGH.KIND_MAT[f.kind];if(km&&Math.random()<.6)TGH.addMat(mats,km,rf(.2,.5)*m*sc);
+    TGH.addMat(mats,'stone',rf(.15,.3)*Math.sqrt(m)*sc);
+  }
+  for(const k of Object.keys(mats))TGH.addMat(run.loot.mats,k,mats[k]);
   {const fx=wasBoss?10:wasElite?5:2;for(const h of s.heroes)if(!h.down){const m=G.addFat(h,fx)}tell(`The fight takes its toll: +${fx}% fatigue.`)}
   // experience, and the fallen are pulled back on their feet
   const results=[];
@@ -1072,12 +1093,12 @@ G.finishAdventure=async function(early,flee){
     const pct=TGH.ri?TGH.ri(flee.min,flee.max):flee.min+Math.floor(Math.random()*(flee.max-flee.min+1));
     const goldLost=Math.round(loot.gold*pct/100);loot.gold-=goldLost;
     const matsLost={};
-    for(const k of Object.keys(loot.mats)){const l=Math.floor(loot.mats[k]*pct/100+Math.random());if(l>0){matsLost[k]=l;loot.mats[k]-=l}}
+    for(const k of Object.keys(loot.mats)){const l=Math.round(loot.mats[k]*pct/10)/10;if(l>0){matsLost[k]=l;loot.mats[k]=Math.round((loot.mats[k]-l)*10)/10}}
     const dropped=G.dropFound(flee.item);
     fled={mid:flee.mid,pct,goldLost,matsLost,dropped:dropped.map(i=>TGH.itemTitle(i))};
   }
   G.clearFound();
-  s.town.gold+=loot.gold;for(const k of Object.keys(loot.mats))s.town.mats[k]=(s.town.mats[k]||0)+loot.mats[k];
+  s.town.gold+=loot.gold;for(const k of Object.keys(loot.mats))TGH.addMat(s.town.mats,k,loot.mats[k]);
   const biome=run.biome;
   if(beaten&&!s.town.beaten.includes(biome))s.town.beaten.push(biome);
   for(const h of s.heroes){h.down=false;h.st={};h.hp=h.maxHp;h.mp=h.maxMp;G.homeRest(h)}

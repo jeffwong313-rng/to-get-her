@@ -140,7 +140,6 @@ TGH.genMap=function(biomeKey,seed){
   for(let i=0;i<B.packs;i++){const h=place(3,H-5);if(!h)break;add('pack',h,{names:[pick(mons)[0],pick(mons)[0],pick(mons)[0]]})}
   for(let i=0;i<B.chests;i++)add('chest',place(2,H-4));
   for(let i=0;i<B.qs;i++)add('q',place(2,H-4));
-  for(let i=0;i<B.mats;i++)add('mat',place(2,H-3),{mat:pick(B.mat),amt:ri(1,2)});
   add('boss',{c:bossC,r:bossR},{name:null});
   return {w:W,h:H,tiles,ents,start:[{c:startC,r:startR},{c:startC+1,r:startR}],bossPos:{c:bossC,r:bossR},biome:biomeKey,seed};
 };

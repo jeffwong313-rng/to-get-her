@@ -5,7 +5,7 @@ A 2-player co-op, pass-and-play, XCOM-style hex adventure in full 3D anime style
 - Create two heroes (Sisters, Brothers, Brother and Sister, or Couple).
 - Everyone starts at 1 in every SPECIAL stat plus 10 points. No classes: your stats unlock skills.
 - Each hero has their own HP, MP and Action Points. AP buys movement and attacks.
-- Explore the fog-covered hex map, find camps, "?" tiles, elites and bosses, and carry stones and scraps home to rebuild the town.
+- Explore the fog-covered hex map, find camps, "?" tiles, elites and bosses, and carry the materials your enemies drop (stone, wood, hide, scrap metal, ice crystal, carbon, void shards) home to rebuild the town.
 
 ## Depth
 - Boss rules (Ward, Charger, Relentless, Summoner, Hunter), blessings after elites, and a land twist on each trip from the third trip on.

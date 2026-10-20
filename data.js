@@ -347,11 +347,19 @@ TGH.POTIONS={
   scroll:{n:'Return Scroll',price:60,d:'Both heroes return home at once, keeping everything they found.',scroll:true},
 };
 TGH.MATS={
-  stone:{n:'Stone',col:'#8a8a92',d:'Foundations, upgrades.'},metal:{n:'Scrap',col:'#c0b8a8',d:'Forge and gear upgrades.'},
-  wood:{n:'Wood',col:'#9a6a3a',d:'Farm fences and barns.'},hide:{n:'Hide',col:'#b0774c',d:'Farm and gear.'},
-  crystal:{n:'Crystal',col:'#8fd0ea',d:'The Witch’s vials.'},carbon:{n:'Carbon',col:'#5a5258',d:'The Witch’s cauldron.'},
-  void:{n:'Void Shard',col:'#9b70dc',d:'Final upgrades.'},
+  stone:{n:'Stone',col:'#8a8a92',from:'physical',d:'Stone: dropped in every land. Used for the town: foundations, the Vault, the Forge and whetstones for upgrading gear.'},
+  metal:{n:'Scrap Metal',col:'#c0b8a8',from:'brute',d:'Scrap Metal: dropped by hulking brutes. Used by the Forge and the Witch\u2019s cauldron.'},
+  wood:{n:'Wood',col:'#9a6a3a',from:'grass',d:'Wood: dropped in the Wilds. Used for the Farm (fences, barns) and the Family Home.'},
+  hide:{n:'Hide',col:'#b0774c',from:'beast',d:'Hide: dropped by beasts and the restless dead. Used for the Farm.'},
+  crystal:{n:'Ice Crystal',col:'#8fd0ea',from:'ice',d:'Ice Crystal: dropped on the Summit. Used by the Witch (vials, scrying glass).'},
+  carbon:{n:'Carbon',col:'#5a5258',from:'fire',d:'Carbon: dropped in the Wasteland. Used by the Witch (charcoal for her cauldron).'},
+  void:{n:'Void Shard',col:'#9b70dc',from:'dark',d:'Void Shard: dropped only on the Dark Side. Used for the final upgrades.'},
 };
+// Each enemy drops, on its own, the material of its land (fire gives Carbon, grass gives Wood...) and sometimes one of its kind; every enemy drops a little Stone.
+TGH.EL_MAT={physical:'stone',grass:'wood',fire:'carbon',ice:'crystal',dark:'void'};
+TGH.KIND_MAT={beast:'hide',skeleton:'hide',spider:'hide',brute:'metal'};
+TGH.addMat=(o,k,v)=>{o[k]=Math.round(((o[k]||0)+v)*10)/10};
+TGH.rollMat=function(biome){const B=TGH.BIOMES[biome];const k=TGH.EL_MAT[B&&B.el]||'stone';return Math.random()<.4?'stone':k};
 
 /* ---------- town ---------- */
 TGH.BUILD={
@@ -411,6 +419,6 @@ TGH.HINTS=[
   'Archers reach farther with Perception. Mages reach less far. Warriors only reach what is next to them.',
   'Level up to spend stat points. Skills need the right stats, so a hybrid build is allowed.',
   'Camp fires heal both heroes and bring a fallen partner back.',
-  'Bring stone and scrap home to rebuild the town.',
+  'Bring materials home to rebuild the town.',
 ];
 })();

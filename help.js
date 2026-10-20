@@ -48,7 +48,7 @@ add('Elements','prism','Prism','Prism Hail and Rain of Stars choose, for each ar
 add('Map','camp','Camp fire','Walk onto it to rest. Heals both heroes, restores mana and brings a fallen partner back. Once used it burns down.');
 add('Map','question','? tile','Walk onto it to find out. It can be treasure, a clue about your sister, a healing spring or a trap. Luck improves the odds.');
 add('Map','chest','Chest','Loot waits inside: gear, gold or materials.');
-add('Map','mat','Materials','Stone, scrap, wood, hide, crystal, carbon and void shards lie around each land. Carry them home to rebuild the town: they pay for the forge, vault, witch\'s hut, farm and family home.');
+add('Map','mat','Materials','Enemies drop materials on their own: stone from every foe, plus the material of their land (wood in the Wilds, carbon in the Wasteland, ice crystal on the Summit, void shards on the Dark Side), and hide or scrap metal from beasts and brutes. Nothing lies on the ground. Carry it all home to rebuild the town. Fleeing or fainting loses some or all of it.');
 add('Map','elite','Elite','A stronger monster, sometimes with a mutation. It notices heroes within 2 hexes and starts a fight by itself. It drops better loot.');
 add('Map','boss','Boss','Guards the way out of each land. Notices you from 2 hexes. If one hero starts the fight, the other must spend AP to walk over and help.');
 add('Map','terrain','Terrain','Boulders and mountains block walking and sight. Water and lava cannot be crossed. Plan a route around them.');
@@ -73,7 +73,7 @@ add('Monsters','ability','Signature ability','Every kind of monster has one spec
 add('Monsters','habit','Fighting habit','How a monster picks its target: it attacks the nearest hero (front), hunts the hero with the lowest health (weak), goes for the most fragile hero (back), or keeps hitting the hero it already hurt (fixate).');
 add('Monsters','scout','Bestiary','Every monster you meet is recorded. Each fight your Perception may reveal more: first the basics, then stats and resistances, then its skills, then its signature ability and habit. Every 3 kills of a kind guarantees the next stage.');
 add('Monsters','res','Resistances','Each kind of monster takes more or less damage from physical blows and from each element. A positive number means it shrugs the damage off; a negative number is a weakness.');
-add('Town','forge','Forge','Upgrade a weapon or armor with gold, scrap and stone. Each plus adds 10% to its power or armor. A higher forge level raises the limit.');
+add('Town','forge','Forge','Upgrade a weapon or armor with gold, scrap metal and stone. Each plus adds 10% to its power or armor. A higher forge level raises the limit.');
 add('Town','vault','Vault','The shared pack where unused gear is kept. A bigger vault holds more.');
 add('Town','witch','Witch\'s Hut','Sells potions. Higher levels brew stronger potions and add Quickening Draughts and Phoenix Feathers.');
 add('Town','farm','Farm','Hot meals at home: each level adds 6 max health to both heroes.');

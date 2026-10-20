@@ -332,7 +332,7 @@ U.showLoot=function(title,gold,items){
 };
 U.victory=async function(r){
   if(TGH.sound)TGH.sound.play('win');
-  const chipsHtml=Object.entries(r.mats).map(([k,v])=>`<span class="mchip" style="border-color:${TGH.MATS[k].col}">${TGH.MATS[k].n} ×${v}</span>`).join('');
+  const chipsHtml=Object.entries(r.mats).map(([k,v])=>`<span class="mchip" style="border-color:${TGH.MATS[k].col}">${TGH.MATS[k].n} ×${Math.round(v*10)/10}</span>`).join('');
   const heroes=r.results.map(x=>`<div class="vrow p${G.s.heroes.indexOf(x.h)}"><img src="${A.portrait(x.h,60,72)}"><div><b>${esc(x.h.name)}</b> +${x.xp} XP${x.up?` <span class="lvup">LEVEL UP! → ${x.h.level}</span>`:''}${x.down?' <small>(was down)</small>':''}</div></div>`).join('');
   const loot=r.items.map(i=>`<div class="lootitem" style="border-color:${TGH.RAR[i.rarity].c}"><b style="color:${TGH.RAR[i.rarity].c}">${esc(TGH.itemTitle(i))}</b><small>${TGH.RAR[i.rarity].l} ${TGH.SLOTN[i.slot]} · ${TGH.itemLines(i).join(' · ')}</small></div>`).join('');
   await U.modalChoice(r.boss?esc(r.boss.name)+' defeated!':'Victory!',`${heroes}<p class="gold">+${r.gold} gold ${chipsHtml}</p>${loot}${r.boss?'<p class="lvup">A way opens at the top of the map. Step into the portal to take your haul home.</p>':''}`,[{label:'Continue',cls:'gold'}]);
@@ -348,8 +348,8 @@ U.fleeAsk=async function(T,gold,found){
   return v;
 };
 U.homecoming=async function(s){
-  const fl=s.fled?`<p class="warn">${s.fled.mid?'Fled mid-battle':'Ran for home'} and dropped ${s.fled.goldLost} gold (${s.fled.pct}%)${Object.keys(s.fled.matsLost).length?' and '+Object.entries(s.fled.matsLost).map(([k,v])=>TGH.MATS[k].n+' \u00d7'+v).join(', '):''} on the way.</p>${s.fled.dropped.length?'<p class="warn">Lost in the scramble: '+s.fled.dropped.map(esc).join(', ')+'.</p>':'<p>Held on to every item you found.</p>'}`:'';
-  const mats=Object.entries(s.mats).map(([k,v])=>`<span class="mchip" style="border-color:${TGH.MATS[k].col}">${TGH.MATS[k].n} ×${v}</span>`).join('')||'<small>no materials</small>';
+  const fl=s.fled?`<p class="warn">${s.fled.mid?'Fled mid-battle':'Ran for home'} and dropped ${s.fled.goldLost} gold (${s.fled.pct}%)${Object.keys(s.fled.matsLost).length?' and '+Object.entries(s.fled.matsLost).map(([k,v])=>TGH.MATS[k].n+' \u00d7'+v.toFixed(1)).join(', '):''} on the way.</p>${s.fled.dropped.length?'<p class="warn">Lost in the scramble: '+s.fled.dropped.map(esc).join(', ')+'.</p>':'<p>Held on to every item you found.</p>'}`:'';
+  const mats=Object.entries(s.mats).map(([k,v])=>`<span class="mchip" style="border-color:${TGH.MATS[k].col}">${TGH.MATS[k].n} ×${Math.round(v*10)/10}</span>`).join('')||'<small>no materials</small>';
   await U.modalChoice(s.beaten?'The way is clear':'Home safe',`<p>${s.beaten?'You beat the guardian of '+esc(TGH.BIOMES[s.biome].name)+'.':'You come home.'} Loot banked:</p>${fl}<p class="gold">+${s.gold} gold</p><p>${mats}</p>`,[{label:'Back to town',cls:'gold'}]);
 };
 U.checkLevelUps=function(){

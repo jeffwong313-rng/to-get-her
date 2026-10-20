@@ -218,7 +218,7 @@ function renderTown(){
 }
 function costHtml(c,t){return Object.entries(c).map(([k,v])=>{const have=k==='gold'?t.gold:(t.mats[k]||0);return `<span class="cost ${have>=v?'ok':'no'}">${k==='gold'?v+' gold':v+' '+TGH.MATS[k].n}</span>`}).join(' ')}
 const canPay=(c,t)=>Object.entries(c).every(([k,v])=>(k==='gold'?t.gold:(t.mats[k]||0))>=v);
-const pay=(c,t)=>{for(const [k,v] of Object.entries(c)){if(k==='gold')t.gold-=v;else t.mats[k]-=v}};
+const pay=(c,t)=>{for(const [k,v] of Object.entries(c)){if(k==='gold')t.gold-=v;else t.mats[k]=Math.round((t.mats[k]-v)*10)/10}};
 function buildCard(key){
   const t=G.s.town,B=TGH.BUILD[key],L=t.b[key]||0;
   if(L>=B.max)return `<div class="bcard"><b>${B.n} · Lv ${L} (max)</b><small>${esc(B.d)}</small></div>`;
