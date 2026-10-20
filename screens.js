@@ -235,7 +235,8 @@ function townPanel(p){
     body=TGH.ADVENTURES.map(k=>{
       const B=TGH.BIOMES[k],req=TGH.ADV_REQ[k],open=!req||t.beaten.includes(req),done=t.beaten.includes(k);
       const lvl=TGH.LEVEL_BASE[k];
-      return `<div class="advcard ${open?'':'locked'}"><div><b>${esc(B.name)}</b> ${done?'<span class="done">cleared</span>':''}<small>Foes around level ${lvl}–${lvl+4} · ${B.h} rows</small><small>${esc(B.flavor)}</small>${(()=>{const m=TGH.landMod(t,k);return m?`<small class="mod ${TGH.LAND_MOD[m].bad?'bad':'good'}"><b>${TGH.LAND_MOD[m].n}:</b> ${TGH.LAND_MOD[m].d}</small>`:'<small class="mod">No twist on this trip.</small>'})()}${k==='cave'?`<small>Cave beasts beaten: ${(t.caveBeaten||[]).length}/3</small>`:''}</div>${open?`<button class="gold small" data-go="${k}">Set out</button>`:`<span class="lock">Beat ${esc(TGH.BIOMES[req].name)} first</span>`}</div>`;
+      if(!open&&!done)return `<div class="advcard locked"><div><b>???</b><small>A land you have not reached yet. Beat the one before it to see more.</small></div></div>`;
+      return `<div class="advcard ${open?'':'locked'}"><div><b>${esc(B.name)}</b> ${done?'<span class="done">cleared</span>':''}<small>${esc(B.flavor)}</small>${(()=>{const m=TGH.landMod(t,k);return m?`<small class="mod ${TGH.LAND_MOD[m].bad?'bad':'good'}"><b>${TGH.LAND_MOD[m].n}:</b> ${TGH.LAND_MOD[m].d}</small>`:'<small class="mod">No twist on this trip.</small>'})()}${k==='cave'?`<small>Cave beasts beaten: ${(t.caveBeaten||[]).length}/3</small>`:''}</div>${open?`<button class="gold small" data-go="${k}">Set out</button>`:`<span class="lock">Beat ${esc(TGH.BIOMES[req].name)} first</span>`}</div>`;
     }).join('');
   }else if(p==='lodge'){
     title='Family Home';

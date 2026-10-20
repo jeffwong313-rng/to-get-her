@@ -151,11 +151,11 @@ TGH.BIOMES={
     sky:'#2a1410',fog:'#1a0c0a',floor:['#8a5a44','#7c4f3c'],edge:'#4a2418',w:12,h:24,mons:[['Cinder Hound','beast'],['Magma Ooze','slime'],['Flame Wisp','wraith'],['Obsidian Brute','brute'],['Cinder Bat','bat'],['Lava Crawler','spider'],['Magma Wyrm','serpent'],['Charred Bones','skeleton']],
     flavor:'A long haul across wastes the smoke has burned dead. Lava splits the ground.',diff:1,mult:1.7,packs:11,elites:3,camps:3,qs:5,chests:3,mats:9,boss:'Mother of Ash'},
   summit:{name:'The Summit',el:'ice',mat:['crystal','stone','metal'],hazard:'water',block:['mountain','mountain','boulder'],
-    sky:'#12202e',fog:'#0c1620',floor:['#cfe0ec','#bdd2e2'],edge:'#6f8aa0',w:12,h:28,mons:[['Frost Wolf','beast'],['Rime Slime','slime'],['Ice Wraith','wraith'],['Glacier Brute','brute'],['Rime Bat','bat'],['Snow Weaver','spider'],['Ice Serpent','serpent'],['Frozen Dead','skeleton']],
-    flavor:'The climb to the highest point in the land, where everyone can sense a dark force waiting.',diff:1.5,mult:2.3,packs:14,elites:4,camps:4,qs:6,chests:4,mats:11,boss:'The Gatekeeper'},
+    sky:'#12202e',fog:'#0c1620',floor:['#cfe0ec','#bdd2e2'],edge:'#6f8aa0',w:12,h:44,mons:[['Frost Wolf','beast'],['Rime Slime','slime'],['Ice Wraith','wraith'],['Glacier Brute','brute'],['Rime Bat','bat'],['Snow Weaver','spider'],['Ice Serpent','serpent'],['Frozen Dead','skeleton']],
+    flavor:'The climb to the highest point in the land, where everyone can sense a dark force waiting.',diff:1.5,mult:2.3,packs:22,elites:6,camps:6,qs:7,chests:6,mats:16,boss:'The Gatekeeper'},
   dark:{name:'The Dark Side',el:'dark',mat:['void'],hazard:'void',block:['mountain','boulder'],
-    sky:'#07040c',fog:'#05030a',floor:['#3a2f50','#30284a'],edge:'#1a1230',w:12,h:22,mons:[['Gloom Hound','beast'],['Void Ooze','slime'],['Hollow Shade','wraith'],['Abyssal Knight','brute'],['Shade Bat','bat'],['Void Weaver','spider'],['Abyssal Eel','serpent'],['Unlit Dead','skeleton']],
-    flavor:'There is no sky here. This is where the darkness took her.',diff:2,mult:3,packs:11,elites:4,camps:3,qs:4,chests:2,mats:6,boss:'The Unlit King'},
+    sky:'#07040c',fog:'#05030a',floor:['#3a2f50','#30284a'],edge:'#1a1230',w:12,h:54,mons:[['Gloom Hound','beast'],['Void Ooze','slime'],['Hollow Shade','wraith'],['Abyssal Knight','brute'],['Shade Bat','bat'],['Void Weaver','spider'],['Abyssal Eel','serpent'],['Unlit Dead','skeleton']],
+    flavor:'There is no sky here. This is where the darkness took her.',diff:2,mult:3,packs:26,elites:7,camps:6,qs:5,chests:5,mats:10,boss:'The Unlit King'},
 };
 TGH.ADVENTURES=['cave','wilds','wasteland','summit','dark'];
 TGH.ADV_REQ={cave:null,wilds:'cave',wasteland:'wilds',summit:'wasteland',dark:'summit'};
