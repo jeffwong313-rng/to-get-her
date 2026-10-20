@@ -90,7 +90,7 @@ G.startRun=function(biome){
     const all=Object.keys(TGH.CAVE_BEASTS),left=all.filter(n=>!(s.town.caveBeaten||[]).includes(n));
     bossName=pick(left.length?left:all);
   }
-  for(const h of s.heroes){h.st={};h.down=false;h.hp=h.maxHp;h.mp=h.maxMp;h.ap=h.maxAp}
+  for(const h of s.heroes){h.st={};h.down=false;h.hp=h.maxHp;h.mp=h.maxMp;h.ap=h.maxAp;h.minR=null;h.depth=0}
   const boss=map.ents.find(e=>e.type==='boss');boss.name=bossName;
   s.run={biome,map,vis:new Array(map.w*map.h).fill(0),loot:{gold:0,mats:{},xp:0},turn:{hero:0,bank:0,round:1},battle:null,bossName,bossBeaten:false,rounds:0,foesKilled:0,log:[]};
   s.heroes[0].c=map.start[0].c;s.heroes[0].r=map.start[0].r;
@@ -227,6 +227,10 @@ G.doMove=async function(plan){
     A.focus(step.c,step.r);
     await A.moveAlong(h,[step]);
     G.computeVis();ui().refresh();
+    // the road wears heroes out the deeper they go
+    if(h.minR==null)h.minR=run.map.start[0].r;
+    if(step.r<h.minR){h.minR=step.r;h.depth=(h.depth||0)+1;
+      const k=h.depth+TGH.ADVENTURES.indexOf(run.biome)*6,x=TGH.fatRoll(h,k);if(x>0)G.addFat(h,x)}
     const stop=await G.afterStep(h);
     if(stop){interrupted=true;break}
   }
@@ -264,16 +268,22 @@ G.afterStep=async function(h){
 };
 
 /* ---------- things on the map ---------- */
+G.addFat=function(h,x){
+  const msgs=TGH.addFat(h,x);TGH.recalc(h,G.s.town);
+  for(const m of msgs){tell(m,'warn');ui().float(h,'Tiring','dbf')}
+  return msgs;
+};
 G.useCamp=async function(e,h){
   const run=R_();e.gone=true;
   const obj=e.obj;if(obj&&obj.userData.flame)obj.userData.flame.forEach(f=>f.scale.set(.5,.5,.5));
   for(const x of G.s.heroes){
     if(x.down){x.down=false;x.hp=Math.round(x.maxHp*.3);A.revive(x)}
     x.hp=Math.min(x.maxHp,x.hp+Math.round(x.maxHp*.4));x.mp=Math.min(x.maxMp,x.mp+Math.round(x.maxMp*.4));
+    if(x.fat>0){x.fat=Math.max(0,x.fat-50);TGH.recalc(x,G.s.town)}
     A.fx.sparkles(A.unitPos(x),'#ffcf6a',12,.6);
     ui().float(x,'+'+Math.round(x.maxHp*.4),'heal');
   }
-  tell('You rest by the fire. Both heroes recover 40% health and mana.','good');
+  tell('You rest by the fire. Both heroes recover 40% health and mana, and 50% fatigue.','good');
   ui().refresh();await sleep(700);
 };
 G.takeMat=function(e,h){
@@ -643,6 +653,7 @@ G.useItem=async function(id,target){
   else if(target.down){ui().toast(target.name+' is down. Use a Phoenix Feather.');return}
   G.busy=true;town.items[id]--;h.ap--;
   const farm=1+(town.b.witch||1)*.08-.08;
+  if(P.fat){const was=TGH.fatOf(target);target.fat=Math.max(0,(target.fat||0)-P.fat);TGH.recalc(target,town);ui().float(target,'Fatigue -'+(was-TGH.fatOf(target))+'%','heal')}
   if(P.heal){const a=Math.round(target.maxHp*P.heal*farm);target.hp=Math.min(target.maxHp,target.hp+a);ui().float(target,'+'+a,'heal');A.fx.sparkles(A.unitPos(target),'#ff9a9a',12,.8)}
   if(P.mana){const a=Math.round(target.maxMp*P.mana);target.mp=Math.min(target.maxMp,target.mp+a);ui().float(target,'+'+a+' MP','mana');A.fx.sparkles(A.unitPos(target),'#8ab0ff',12,.8)}
   if(P.ap){h.ap+=P.ap;ui().float(h,'+'+P.ap+' AP','buff')}
@@ -739,6 +750,7 @@ async function foeSkill(f,tg,d){
     else if(k==='guard'&&allies.some(x=>!x.st.guard))opts.push(k);
     else if(k==='flurry'&&d<=1)opts.push(k);
     else if(k==='windup'&&d<=3&&f.ap>=f.maxAp)opts.push(k);
+    else if(k==='weary'&&d<=Math.max(1,f.range))opts.push(k);
     else if(k==='relentless'&&(f.furyN||0)<5&&f.hp<f.maxHp*.9)opts.push(k);
   }
   if(!opts.length)return false;
@@ -765,6 +777,7 @@ async function foeSkill(f,tg,d){
   else if(k==='guard'){const t=allies.filter(x=>!x.st.guard).sort((a,c)=>a.hp/a.maxHp-c.hp/c.maxHp)[0];t.st.guard={taken:.5,n:2};ui().float(t,'Shielded','buff');f.ap-=1}
   else if(k==='flurry'){await G.foeStrike(f,tg,.5);if(!tg.down)await G.foeStrike(f,tg,.5);f.ap-=1}
   else if(k==='windup'){f.charging=true;ui().float(f,'Gathering power…','dbf');A.fx.ring(A.unitPos(f),'#ffcf4a',900);f.ap=0}
+  else if(k==='weary'){await hurtHero(.55,(r)=>{if(r.hit)G.addFat(tg,ri(8,12))});f.ap-=1}
   else if(k==='relentless'){f.furyN=Math.min(5,(f.furyN||0)+1);ui().float(f,'Fury +'+f.furyN,'buff');A.fx.ring(A.unitPos(f),'#ff4a3a',600);f.ap-=1}
   await sleep(150);
   return true;
@@ -881,6 +894,7 @@ G.victory=async function(){
   const B=TGH.BIOMES[run.biome];
   const nm=wasBoss?3:wasElite?2:chance(.45)?1:0;
   for(let i=0;i<nm;i++){const k=pick(B.mat);mats[k]=(mats[k]||0)+1;run.loot.mats[k]=(run.loot.mats[k]||0)+1}
+  {const fx=wasBoss?10:wasElite?5:2;for(const h of s.heroes)if(!h.down){const m=G.addFat(h,fx)}tell(`The fight takes its toll: +${fx}% fatigue.`)}
   // experience, and the fallen are pulled back on their feet
   const results=[];
   for(const h of s.heroes){
@@ -909,10 +923,10 @@ G.defeat=async function(){
   G.mode='ended';G.busy=true;
   const run=R_(),s=G.s;
   const lost={gold:run.loot.gold,mats:Object.assign({},run.loot.mats)};
-  const fee=Math.round(s.town.gold*.1);s.town.gold-=fee;
+  const fee=0;
   await ui().defeat(lost,fee);
   G.s.run=null;
-  for(const h of s.heroes){h.down=false;h.st={};h.hp=h.maxHp;h.mp=h.maxMp}
+  for(const h of s.heroes){h.down=false;h.st={};h.hp=h.maxHp;h.mp=h.maxMp;G.homeRest(h)}
   G.busy=false;G.toTown();
 };
 G.finishAdventure=async function(early){
@@ -922,7 +936,7 @@ G.finishAdventure=async function(early){
   s.town.gold+=loot.gold;for(const k of Object.keys(loot.mats))s.town.mats[k]=(s.town.mats[k]||0)+loot.mats[k];
   const biome=run.biome;
   if(beaten&&!s.town.beaten.includes(biome))s.town.beaten.push(biome);
-  for(const h of s.heroes){h.down=false;h.st={};h.hp=h.maxHp;h.mp=h.maxMp}
+  for(const h of s.heroes){h.down=false;h.st={};h.hp=h.maxHp;h.mp=h.maxMp;G.homeRest(h)}
   const summary={biome,beaten,gold:loot.gold,mats:loot.mats,early,foes:run.foesKilled};
   s.run=null;G.save();
   await ui().homecoming(summary);
@@ -937,6 +951,8 @@ G.goHome=function(){
   if(!near){ui().toast('Both heroes must be near the start to go home.');return}
   G.finishAdventure(true);
 };
+// Home clears fatigue; an injury heals a little with every trip home.
+G.homeRest=function(h){h.fat=0;if(h.injury){h.injury.runs--;if(h.injury.runs<=0)h.injury=null}TGH.recalc(h,G.s.town)};
 G.toTown=function(){
   G.mode='town';G.sel=null;G.pend=null;
   A.clearAllOverlays();

@@ -115,6 +115,7 @@ function card(h,i){
       <div class="hc-title">${TGH.heroTitle(h)}${active?'<span class="yt">YOUR TURN</span>':''}</div>
       <div class="bar hp"><i style="width:${pct(h.hp,h.maxHp)}%"></i><b>${h.hp} / ${h.maxHp}</b></div>
       <div class="bar mp"><i style="width:${pct(h.mp,h.maxMp)}%"></i><b>${h.mp} / ${h.maxMp}</b></div>
+      ${(h.fat>=1||TGH.injOf(h))?TGH.help.fatBar(h):''}
       <div class="aprow"><span class="aplabel">AP</span><span class="pips">${pips}</span>${bank}</div>
       <div class="chips">${chips(h)}</div>
     </div></div>`;
@@ -323,7 +324,7 @@ U.victory=async function(r){
   await U.modalChoice(r.boss?esc(r.boss.name)+' defeated!':'Victory!',`${heroes}<p class="gold">+${r.gold} gold ${chipsHtml}</p>${loot}${r.boss?'<p class="lvup">A way opens at the top of the map. Step into the portal to take your haul home.</p>':''}`,[{label:'Continue',cls:'gold'}]);
 };
 U.defeat=async function(lost,fee){
-  await U.modalChoice('Both heroes have fallen','<p>The dark closes in. You wake up at home, bruised but alive. Everything you carried out of that place is gone'+(fee?', and the healer took '+fee+' gold':'')+'.</p>',[{label:'Return home'}]);
+  await U.modalChoice('You fainted','<p>Both of you faint in the dark. When you open your eyes you are in your own bed: the villagers found you and carried you home. They could not carry anything else. Every bit of loot and every material you gathered on that trip is lost, but your gear, levels and supplies from town are safe, and you are fully rested.</p>',[{label:'Return home'}]);
 };
 U.homecoming=async function(s){
   const mats=Object.entries(s.mats).map(([k,v])=>`<span class="mchip" style="border-color:${TGH.MATS[k].col}">${TGH.MATS[k].n} ×${v}</span>`).join('')||'<small>no materials</small>';

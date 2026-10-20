@@ -53,6 +53,8 @@ add('Map','elite','Elite','A stronger monster, sometimes with a mutation. It not
 add('Map','boss','Boss','Guards the way out of each land. Notices you from 2 hexes. If one hero starts the fight, the other must spend AP to walk over and help.');
 add('Map','terrain','Terrain','Boulders and mountains block walking and sight. Water and lava cannot be crossed. Plan a route around them.');
 add('Map','pack','Monster pack','A group of up to three monsters. They start a fight when you step next to them.');
+add('Combat','fatigue','Fatigue','Builds as heroes go deeper and after every fight (+2% battle, +5% elite, +10% boss). Strength and Endurance slow the road build-up. 50%: one hex less per AP. 80%: 33% less damage dealt and 33% more taken. 100%: an injury (sprained ankle, cramps, dizziness, bruised ribs or a headache) until you have been home twice. Camps take 50% off, an Energy Brew 25%, and going home clears it all. Some monsters land Wearying Blows.');
+add('Combat','faint','Fainting','If both heroes fall, the villagers carry them home. You keep your gear and levels, but all loot and materials from that trip are lost.');
 add('Combat','stun','Stun','A stunned unit loses its next turn. Bosses only lose 1 turn no matter how long it should last.');
 add('Combat','guard','Guard','Reduces damage taken for a few rounds. Taunting guards make monsters prefer to hit that hero.');
 add('Combat','hexed','Hexed','The target takes extra damage from everyone for a few rounds.');
@@ -130,6 +132,8 @@ document.addEventListener('click',e=>{
 },true);
 
 /* ---------- the Guide pop-up ---------- */
+H.fatBar=function(h){const f=TGH.fatOf(h),j=TGH.injOf(h);
+  return `<div class="bar fatb ${f>=80?'hi':f>=50?'mid':''}" data-gid="fatigue" ${H.tipAttr?'':''} data-tip="${(f>=80?'Exhausted: 33% less damage dealt, 33% more taken. ':f>=50?'Tiring: one hex less per AP. ':'')+'Fatigue builds on the road and after fights. Rest at camps, use an Energy Brew, or go home.'}"><i style="width:${f}%"></i><b>Fatigue ${f}%${j?' · '+TGH.INJURY[j].n+' ('+TGH.INJURY[j].d+')':''}</b></div>`};
 H.open=function(focusId){
   hideTip();
   const old=document.querySelector('.modal.guide');if(old)old.remove();

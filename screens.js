@@ -251,7 +251,7 @@ function townPanel(p){
   }else if(p==='witch'){
     title='Witch’s Hut';
     const L=t.b.witch,disc=Math.min(.25,Math.max(...s.heroes.map(h=>h.stats.cha))*.02);
-    const stock=['potion','mpotion','scroll',...(L>=2?['apdraught']:[]),...(L>=3?['phoenix']:[])];
+    const stock=['potion','mpotion','ebrew','scroll',...(L>=2?['apdraught']:[]),...(L>=3?['phoenix']:[])];
     body=buildCard('witch')+`<p>Charisma gets you a discount (${Math.round(disc*100)}%).</p>`+stock.map(id=>{
       const P=TGH.POTIONS[id],price=Math.round(P.price*(1-disc));
       return `<div class="bcard"><b>${esc(P.n)} · you have ${t.items[id]||0}</b><small>${esc(P.d)}</small><button class="small" data-buy="${id}|${price}" ${t.gold>=price&&(t.items[id]||0)<9?'':'disabled'}>Buy for ${price} gold</button></div>`;
@@ -365,6 +365,7 @@ function renderHero(){
     <div class="bar xp"><i style="width:${xpPct}%"></i><b>XP ${h.xp} / ${h.level>=TGH.MAX_LEVEL?'max':need}</b></div>
     <div class="bar hp"><i style="width:${Math.round(h.hp/h.maxHp*100)}%"></i><b>HP ${h.hp} / ${h.maxHp}</b></div>
     <div class="bar mp"><i style="width:${Math.round(h.mp/h.maxMp*100)}%"></i><b>MP ${h.mp} / ${h.maxMp}</b></div>
+    ${TGH.help.fatBar(h)}
     <div class="hmstats">
       <div ${TGH.help.tipAttr('ap')}><span>Action Points</span><b>${h.maxAp}</b></div>
       <div ${TGH.help.tipAttr('move')}><span>Hexes per AP</span><b>${h.move}</b></div>

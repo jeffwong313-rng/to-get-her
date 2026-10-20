@@ -280,9 +280,10 @@ TGH.FOE_SKILLS={
   flurry:{n:'Flurry',d:'Two quick blows on one hero.'},
   windup:{n:'Charging',d:'Gathers power this turn. Its next move is a devastating blow.'},
   unleash:{n:'Unleash',d:'The blow it was charging: hits every hero for 1.5x damage.'},
+  weary:{n:'Wearying Blow',d:'A grinding hit that adds 8-12% fatigue.'},
   relentless:{n:'Relentless',d:'Spends a turn working itself into a fury: +12% damage for the rest of the fight, up to +60%.'},
 };
-TGH.SHAPE_SKILLS={beast:['rend','howl'],slime:['ooze','harden'],wraith:['drain','curse'],brute:['sweep','harden'],bat:['drain','rend'],spider:['web','rend'],serpent:['rend','sweep'],skeleton:['harden','sweep']};
+TGH.SHAPE_SKILLS={beast:['rend','howl'],slime:['ooze','harden'],wraith:['drain','curse','weary'],brute:['sweep','harden'],bat:['drain','rend'],spider:['web','rend'],serpent:['rend','sweep'],skeleton:['harden','weary','sweep']};
 // One monster in every land works with the pack instead of fighting.
 TGH.TEAM_OF={'Gloom Slime':'mend','Rime Slime':'mend','Flame Wisp':'mend','Spore Wisp':'mend','Hollow Shade':'mend','Rock Brute':'rally','Glacier Brute':'rally','Cinder Hound':'rally','Bark Brute':'rally','Abyssal Knight':'rally','Restless Dead':'guard','Frozen Dead':'guard','Obsidian Brute':'guard','Rooted Dead':'guard','Unlit Dead':'guard'};
 // how many skills a land teaches its monsters
@@ -311,6 +312,7 @@ TGH.POTIONS={
   mpotion:{n:'Mana Potion',price:30,d:'Restores 50% of max mana.',mana:.5},
   apdraught:{n:'Quickening Draught',price:70,d:'Grants +2 AP this turn.',ap:2},
   phoenix:{n:'Phoenix Feather',price:150,d:'Revives a fallen ally with 50% health.',revive:.5},
+  ebrew:{n:'Energy Brew',price:45,d:'Removes 25% fatigue from one hero.',fat:25},
   scroll:{n:'Return Scroll',price:60,d:'Both heroes return home at once, keeping everything they found.',scroll:true},
 };
 TGH.MATS={

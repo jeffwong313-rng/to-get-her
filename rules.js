@@ -48,6 +48,35 @@ TGH.itemLines=it=>{
 };
 TGH.sellValue=it=>Math.round((6+it.ilvl*3)*TGH.RAR[it.rarity].m*(1+(it.plus||0)*.4));
 
+/* ---------- fatigue (ported from Dark Side) ----------
+   Fatigue builds on the road and after fights. 50%+: one hex less per AP. 80%+: deals 33% less and takes 33% more. 100%: an injury
+   that lasts until the party has been home twice. Camps take 50 off, Energy Brews 25; the Family Home clears everything. */
+TGH.INJURY={
+  ankle:{n:'Sprained Ankle',d:'moves 1 hex less per AP'},
+  cramp:{n:'Cramping Muscles',d:'deals 20% less damage'},
+  dizzy:{n:'Dizziness',d:'-15% hit chance'},
+  ribs:{n:'Bruised Ribs',d:'takes 20% more damage'},
+  head:{n:'Splitting Headache',d:'-25% max mana'},
+};
+TGH.fatOf=h=>Math.round((h&&h.fat)||0);
+TGH.injOf=h=>(h&&h.injury&&h.injury.runs>0)?h.injury.id:null;
+TGH.fatSlow=h=>(TGH.fatOf(h)>=50?1:0)+(TGH.injOf(h)==='ankle'?1:0);
+TGH.fatDmg=h=>(TGH.fatOf(h)>=80?.67:1)*(TGH.injOf(h)==='cramp'?.8:1);
+TGH.fatTaken=h=>(TGH.fatOf(h)>=80?1.33:1)*(TGH.injOf(h)==='ribs'?1.2:1);
+TGH.fatRange=k=>k<=5?null:k<=9?[0,1]:k<=19?[1,3]:k<=29?[2,5]:[5,8];
+// Strength and Endurance tilt the roll toward the low end.
+TGH.fatRoll=function(h,k){const R=TGH.fatRange(k);if(!R)return 0;const s=(h.stats.end+h.stats.str)/25,w={};
+  for(let v=R[0];v<=R[1];v++)w[v]=Math.exp(-s*(v-R[0]));return +weighted(w)};
+// Adds fatigue and returns what to tell the player.
+TGH.addFat=function(h,x){
+  const out=[];if(!h||h.down||h.hp<=0||x<=0)return out;
+  const was=h.fat||0;h.fat=Math.min(100,was+x);
+  if(was<50&&h.fat>=50)out.push(`${h.name} is tiring (50% fatigue): one hex less per AP.`);
+  if(was<80&&h.fat>=80)out.push(`${h.name} is exhausted (80% fatigue): 33% less damage dealt, 33% more taken.`);
+  if(h.fat>=100&&!TGH.injOf(h)){const id=pick(Object.keys(TGH.INJURY));h.injury={id,runs:2};out.push(`${h.name} pushes too hard and suffers ${TGH.INJURY[id].n}: ${TGH.INJURY[id].d}, until the party has been home twice.`)}
+  return out;
+};
+
 /* ---------- heroes ---------- */
 TGH.newHero=function(o){
   const h={id:uid(),name:o.name,gender:o.gender,look:Object.assign({},o.look),level:1,xp:0,base:Object.assign({},o.base),
@@ -63,12 +92,13 @@ TGH.recalc=function(h,town){
   h.stats={};for(const k of TGH.STATS)h.stats[k]=h.base[k]+(bonus[k]||0);
   const farm=((town&&town.b&&town.b.farm)||0)*6;
   h.maxHp=Math.round(20+6*h.stats.end+5*h.level+(bonus.hp||0)+farm);
-  h.maxMp=Math.round(8+3*h.stats.int+2*h.level+h.stats.end+(bonus.mp||0));
+  h.maxMp=Math.round((8+3*h.stats.int+2*h.level+h.stats.end+(bonus.mp||0))*(TGH.injOf(h)==='head'?.75:1));
   let arm=0;for(const it of Object.values(h.equip))if(it&&it.slot!=='weapon'&&it.base)arm+=TGH.itemBase(it);
   h.armor=Math.round(arm*(1+h.stats.end*.06)+h.stats.end*.5);
   h.maxAp=Math.min(7,TGH.maxAP(h)+(bonus.ap||0));
   h.sightBonus=bonus.sight||0;
   h.move=TGH.movePerAP(h)+(bonus.move||0);
+  if(h.move>=3)h.move=Math.max(2,h.move-TGH.fatSlow(h));
   h.sight=TGH.sightOf(h);
   h.crit=5+h.stats.lck*1.2+h.stats.agi*.6+(bonus.crit||0);
   h.critdmg=150+(bonus.critdmg||0);
@@ -114,7 +144,7 @@ TGH.foeLevel=(biome,r,H,extra)=>LEVEL_BASE[biome]+Math.floor((H-1-r)/H*4)+(extra
 // Two heroes at once: monsters are tougher than they used to be.
 const FOE_HP=1.3,FOE_ATK=1.0;
 // the early lands are kinder: a brand-new pair of heroes has to be able to win the first cave
-TGH.EASE={cave:[.7,.55],wilds:[.92,.8],wasteland:[1.05,1.05],summit:[1.2,1.22],dark:[1.3,1.35]};
+TGH.EASE={};
 TGH.makeFoe=function(name,kindKey,level,o){
   o=o||{};const K=TGH.KINDS[o.kind||kindKey]||TGH.KINDS.beast;
   const biome=TGH.BIOMES[o.biome||'cave'];
@@ -192,7 +222,7 @@ TGH.strike=function(att,def,skill,o){
     mult=skill?skill.mult:P.fam.mult;
     base=(att.wpn+1.8*P.val+1.2*att.level)*mult;
     el=TGH.attackElement(att,skill);
-    acc=(skill?skill.acc:P.fam.acc)+att.stats.per*.4;
+    acc=(skill?skill.acc:P.fam.acc)+att.stats.per*.4-(TGH.injOf(att)==='dizzy'?15:0);
   }else{
     base=att.atk*mult;el=att.el||'physical';acc=92;
     const A_=att.ab,V=att.abV||0;
@@ -231,7 +261,8 @@ TGH.strike=function(att,def,skill,o){
   if(def.st.guard)dmg*=def.st.guard.taken;
   if(def.st.buff&&def.st.buff.def)dmg*=1-def.st.buff.def;
   if(def.mut==='warded')dmg*=.92;
-  if(def.team==='hero')dmg*=o.foeScale||1;
+  if(def.team==='hero')dmg*=(o.foeScale||1)*TGH.fatTaken(def);
+  if(hero)dmg*=TGH.fatDmg(att);
   dmg=Math.max(1,Math.round(dmg));
   return {hit:true,dmg,crit,mult:m,el};
 };
@@ -239,6 +270,6 @@ TGH.healAmount=(caster,target,k)=>Math.round(target.maxHp*(k.healPct||0)+(k.heal
 
 /* ---------- town helpers ---------- */
 TGH.newTown=()=>({b:{forge:1,vault:1,witch:1,farm:0,lodge:0},gold:60,mats:{stone:0,metal:0,wood:0,hide:0,crystal:0,carbon:0,void:0},
-  items:{potion:3,mpotion:1,apdraught:0,phoenix:0,scroll:1},pack:[],beaten:[],caveBeaten:[],story:0});
+  items:{potion:3,mpotion:1,ebrew:1,apdraught:0,phoenix:0,scroll:1},pack:[],beaten:[],caveBeaten:[],story:0});
 TGH.upgradeCost=function(it){const L=(it.plus||0)+1;return {gold:Math.round(40*L*(1+it.ilvl*.12)*TGH.RAR[it.rarity].m),metal:L,stone:Math.ceil(L/2)}};
 })();
