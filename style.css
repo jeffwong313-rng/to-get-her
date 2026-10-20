@@ -325,3 +325,5 @@ canvas.hmprev{width:100%;height:clamp(170px,34vh,300px);border-radius:16px;backg
   .tmenu{top:104px}.act small{display:none}.act{min-width:56px}
 }
 @media (max-width:520px){#actionbar .act.end{position:sticky;right:0;box-shadow:-8px 0 10px #150e26}.tparty{top:46px}.tmenu{top:158px}}
+.act.flee{border-color:#c9a14a;color:#f0d9a0}
+.act.flee.ready{background:#4a3a14;box-shadow:0 0 8px #c9a14a88}

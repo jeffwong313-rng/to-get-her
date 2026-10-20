@@ -12,6 +12,7 @@ A 2-player co-op, pass-and-play, XCOM-style hex adventure in full 3D anime style
 - Co-op: flanking (+15%), a Bond meter that unlocks Tandem Strike, and Help Up to raise a fallen partner.
 - Story beats in each land, synthesized sound and music (no audio files), phone and Z Fold layouts.
 - Fatigue (50% tiring, 80% exhausted, 100% injury), camps and Energy Brews recover it. Fainting sends you home without loot.
+- Flee: both living heroes must choose Flee (one after the other). Lose 40-70% of gold and materials plus a 1/3 chance per item found this trip; mid-fight multiplies it x2 (x2.5 elite, x3 boss). Gear and levels are kept.
 - Appearance editor: hair, face, brows, mouth, shirt, pants, shoes, accessories, each with colours.
 - Skills are gated by stat thresholds (3 / 10 / 18 / 26) across Warrior (STR), Archer (AGI), Mage (INT) and Monk (END). Weapons are universal: damage scales with the weapon's stat.
 - 47 monsters, each with its own look, signature ability, fighting habit, resistances and skills. Perception scouts them in four stages (look for the 🔍) and fills the Bestiary.

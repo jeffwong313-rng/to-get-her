@@ -158,6 +158,8 @@ U.renderActionBar=function(){
     const near=G.s.heroes.every(x=>run.map.start.some(p=>TGH.dist(x,p)<=2));
     if(near)btns+=`<button class="act" data-a="home" ${dis}><b>Go Home</b><small>bank loot</small></button>`;
   }
+  {const live=G.live(),ready=live.filter(x=>x.fleeVote).length;
+   btns+=`<button class="act flee ${ready?'ready':''}" data-tip="Run for home. BOTH heroes must choose Flee (one after the other). You keep what is left, but lose a share of your gold and materials and may drop items found on this trip. Running mid-fight costs far more, and most against elites and bosses." data-a="flee" ${dis}><b>Flee</b><small>${ready}/${live.length} ready</small></button>`}
   if(G.canHelpUp(h))btns+=`<button class="act helpup" data-tip="Pull your fallen partner back up with 25% health. Costs 1 AP." data-a="helpup" ${dis}><b>Help Up</b><small>1 AP</small></button>`;
   btns+=`<button class="act end" data-tip="Finish this hero\u2019s turn. Unspent AP is lost, except moves carried over this turn." data-a="end" ${dis}><b>End Turn</b><small>${battle?(i===0&&!G.s.heroes[1].down?'then '+esc(G.s.heroes[1].name):'then enemies'):'pass to '+esc(G.s.heroes[1-i].name)}</small></button>`;
   // preview panel: what a tap on the map is about to do
@@ -193,6 +195,7 @@ function onAct(a){
   else if(a==='home')G.goHome();
   else if(a==='tandem')G.startTandem();
   else if(a==='helpup')G.helpUp();
+  else if(a==='flee')G.flee();
 }
 // Rough damage a strike would do: sample it a few times.
 U.estimate=function(h,sk,t){
@@ -338,9 +341,16 @@ U.defeat=async function(lost,fee){
   if(TGH.sound)TGH.sound.play('lose');
   await U.modalChoice('You fainted','<p>Both of you faint in the dark. When you open your eyes you are in your own bed: the villagers found you and carried you home. They could not carry anything else. Every bit of loot and every material you gathered on that trip is lost, but your gear, levels and supplies from town are safe, and you are fully rested.</p>',[{label:'Return home'}]);
 };
+U.fleeAsk=async function(T,gold,found){
+  const lo=Math.round(gold*T.min/100),hi=Math.round(gold*T.max/100);
+  const sev=T.mid?`<p class="warn">Running in the middle of a fight against ${T.kind==='boss'?'a boss triples':T.kind==='elite'?'an elite multiplies by 2.5':'monsters doubles'} the losses.</p>`:'';
+  const v=await U.modalChoice('Run for home?',`<p>Both of you turn and run. You keep your gear and levels, but on the way you will lose:</p>${sev}<p>Gold: ${T.min}\u2013${T.max}% of what you carry (about ${lo}\u2013${hi} of ${gold})</p><p>Materials: the same share</p><p>Items found on this trip: ${found?found+' at risk, each with a '+Math.round(T.item*100)+'% chance to be dropped':'none at risk'}</p>`,[{label:'Run home',cls:'gold',v:'run'},{label:'Keep going',v:'stay'}]);
+  return v;
+};
 U.homecoming=async function(s){
+  const fl=s.fled?`<p class="warn">${s.fled.mid?'Fled mid-battle':'Ran for home'} and dropped ${s.fled.goldLost} gold (${s.fled.pct}%)${Object.keys(s.fled.matsLost).length?' and '+Object.entries(s.fled.matsLost).map(([k,v])=>TGH.MATS[k].n+' \u00d7'+v).join(', '):''} on the way.</p>${s.fled.dropped.length?'<p class="warn">Lost in the scramble: '+s.fled.dropped.map(esc).join(', ')+'.</p>':'<p>Held on to every item you found.</p>'}`:'';
   const mats=Object.entries(s.mats).map(([k,v])=>`<span class="mchip" style="border-color:${TGH.MATS[k].col}">${TGH.MATS[k].n} ×${v}</span>`).join('')||'<small>no materials</small>';
-  await U.modalChoice(s.beaten?'The way is clear':'Home safe',`<p>${s.beaten?'You beat the guardian of '+esc(TGH.BIOMES[s.biome].name)+'.':'You come home.'} Loot banked:</p><p class="gold">+${s.gold} gold</p><p>${mats}</p>`,[{label:'Back to town',cls:'gold'}]);
+  await U.modalChoice(s.beaten?'The way is clear':'Home safe',`<p>${s.beaten?'You beat the guardian of '+esc(TGH.BIOMES[s.biome].name)+'.':'You come home.'} Loot banked:</p>${fl}<p class="gold">+${s.gold} gold</p><p>${mats}</p>`,[{label:'Back to town',cls:'gold'}]);
 };
 U.checkLevelUps=function(){
   for(const h of G.s.heroes)if(h.points>0||h.skillPoints>0){U.toast(`${h.name} has points to spend. Open the Hero menu.`);break}

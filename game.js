@@ -165,6 +165,7 @@ G.startHeroTurn=function(i,o){
   if(h.down){const j=1-i;if(!s.heroes[j].down){i=j;h=s.heroes[j]}else return G.defeat()}
   run.turn.hero=i;
   if(!o.keepAp){
+    h.fleeVote=false;
     tickStatuses(h);
     h.ap=h.maxAp;run.turn.bank=0;
     if(h.webbed){h.ap=Math.max(1,h.ap-1);h.webbed=false}
@@ -311,6 +312,7 @@ G.takeMat=function(e,h){
 };
 G.addItem=function(it){
   const town=G.s.town,cap_=TGH.vaultCap(town.b.vault||1);
+  if(R_())it.found=true;
   town.pack.push(it);
   if(town.pack.length>cap_){
     // sell the least valuable piece to make room
@@ -1009,20 +1011,77 @@ G.defeat=async function(){
   const run=R_(),s=G.s;
   const lost={gold:run.loot.gold,mats:Object.assign({},run.loot.mats)};
   const fee=0;
+  G.dropFound(1);
   await ui().defeat(lost,fee);
   G.s.town.runs=(G.s.town.runs||0)+1;G.s.run=null;TGH.syncMods(null);
   for(const h of s.heroes){h.down=false;h.st={};h.hp=h.maxHp;h.mp=h.maxMp;G.homeRest(h)}
   G.busy=false;G.toTown();
 };
-G.finishAdventure=async function(early){
+/* ---------- fleeing ---------- */
+const FLEE={min:40,max:70,item:1/3},FLEE_MULT={normal:2,elite:2.5,boss:3};
+G.fleeTerms=function(){
+  const run=R_(),b=run.battle,mid=G.mode==='battle'&&!!b;
+  let kind='normal';if(mid)for(const f of b.foes)if(!f.down){if(f.boss)kind='boss';else if(f.elite&&kind!=='boss')kind='elite'}
+  const k=mid?FLEE_MULT[kind]:1;
+  return {mid,kind,k,min:Math.round(Math.min(100,FLEE.min*k)),max:Math.round(Math.min(100,FLEE.max*k)),item:Math.min(1,FLEE.item*k)};
+};
+// Items picked up on this trip, in the pack or already worn.
+G.foundItems=function(){
+  const out=[],pack=G.s.town.pack;
+  for(const it of pack)if(it.found)out.push({it});
+  for(const h of G.s.heroes)for(const sl of TGH.SLOTS){const it=h.equip[sl];if(it&&it.found)out.push({it,h,sl})}
+  return out;
+};
+// Remove found items from the pack or from a hero. chanceP 1 = all of them. Returns the lost items.
+G.dropFound=function(chanceP){
+  const lost=[];
+  for(const x of G.foundItems()){
+    if(chance(chanceP)){lost.push(x.it);
+      if(x.h)x.h.equip[x.sl]=null;else G.s.town.pack=G.s.town.pack.filter(y=>y!==x.it)}
+  }
+  for(const h of G.s.heroes)TGH.recalc(h,G.s.town);
+  return lost;
+};
+G.clearFound=function(){for(const x of G.foundItems())delete x.it.found};
+G.flee=function(){
+  if(G.busy||G.mode==='ended'||G.mode==='town')return;
+  const run=R_(),h=G.active(),live=G.live();
+  if(!h||!run)return;
+  h.fleeVote=true;
+  const rest=live.filter(x=>!x.fleeVote);
+  if(rest.length){
+    tell(`${h.name} wants to run. ${rest.map(x=>x.name).join(' and ')} must choose Flee too.`,'warn');
+    ui().toast(`${h.name} is ready to run. ${rest[0].name} must choose Flee too.`);
+    return G.endTurn();
+  }
+  return G.confirmFlee();
+};
+G.confirmFlee=async function(){
+  const T=G.fleeTerms(),run=R_();
+  const found=G.foundItems().length;
+  const v=await ui().fleeAsk(T,run.loot.gold,found);
+  if(v!=='run'){for(const h of G.s.heroes)h.fleeVote=false;ui().refresh();return}
+  G.finishAdventure(true,T);
+};
+G.finishAdventure=async function(early,flee){
   const run=R_(),s=G.s;if(G.mode==='ended')return;
   G.mode='ended';G.busy=true;
   const loot=run.loot,beaten=run.bossBeaten;
+  let fled=null;
+  if(flee){
+    const pct=TGH.ri?TGH.ri(flee.min,flee.max):flee.min+Math.floor(Math.random()*(flee.max-flee.min+1));
+    const goldLost=Math.round(loot.gold*pct/100);loot.gold-=goldLost;
+    const matsLost={};
+    for(const k of Object.keys(loot.mats)){const l=Math.floor(loot.mats[k]*pct/100+Math.random());if(l>0){matsLost[k]=l;loot.mats[k]-=l}}
+    const dropped=G.dropFound(flee.item);
+    fled={mid:flee.mid,pct,goldLost,matsLost,dropped:dropped.map(i=>TGH.itemTitle(i))};
+  }
+  G.clearFound();
   s.town.gold+=loot.gold;for(const k of Object.keys(loot.mats))s.town.mats[k]=(s.town.mats[k]||0)+loot.mats[k];
   const biome=run.biome;
   if(beaten&&!s.town.beaten.includes(biome))s.town.beaten.push(biome);
   for(const h of s.heroes){h.down=false;h.st={};h.hp=h.maxHp;h.mp=h.maxMp;G.homeRest(h)}
-  const summary={biome,beaten,gold:loot.gold,mats:loot.mats,early,foes:run.foesKilled};
+  const summary={biome,beaten,gold:loot.gold,mats:loot.mats,early,foes:run.foesKilled,fled};
   s.town.runs=(s.town.runs||0)+1;s.run=null;TGH.syncMods(null);for(const h of s.heroes)TGH.recalc(h,s.town);G.save();
   await ui().homecoming(summary);
   G.busy=false;
