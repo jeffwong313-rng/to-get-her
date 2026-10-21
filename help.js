@@ -24,19 +24,19 @@ add('Basics','eva','Evasion','The chance to make an attack miss. Agility adds 1.
 add('Basics','crit','Critical hits','A crit does extra damage (150% by default). Luck adds 1.2% chance per point and Agility 0.6%. Some skills and gear add more.');
 add('Basics','level','Levels and XP','Beating monsters gives XP. Each level gives 2 stat points and 1 skill point, more max HP and, every 6 levels, an extra AP. The cap is level '+TGH.MAX_LEVEL+'.');
 add('Basics','statpts','Stat points','Spend them in the Hero menu. Each point raises a stat by 1. Plan for the milestones: skill tiers unlock at '+T[2].stat+', '+T[3].stat+' and '+T[4].stat+' in the discipline stat.');
-add('Basics','skillpts','Skill points','You get 1 per level. Spend them to learn a skill you qualify for. A skill needs the right stat level and a minimum hero level.');
+add('Basics','skillpts','Skill picks','Heroes start with no skills. You get a pick at levels 2, 4, 6, 8, 10, 13, 16, 20, 25, 30, 35 and 40. The first two are for Novice skills, then Adept (6, 8), Master (10, 13, 16) and Legend (20 and up). Any pick can also be spent on a lower tier. A skill needs 5 / 10 / 18 / 26 in its discipline stat (Strength for Warrior, Agility for Archer, Intelligence for Mage, Perception for Monk).');
 add('Stats','str','Strength','Power of swords and every Warrior skill. Each point adds about 1.8 damage to a sword swing. Warrior tiers unlock at STR '+T[1].stat+' / '+T[2].stat+' / '+T[3].stat+' / '+T[4].stat+'.');
-add('Stats','per','Perception','See farther through the fog (Sight 2 + half PER). Bow reach grows +1 hex every 3 PER (max 6). Spell reach grows +1 hex every 5 PER (max 4). A little accuracy too.');
-add('Stats','end','Endurance','Health (+6 per point), armor strength, and the discipline stat of the Monk. Monk tiers unlock at END '+T[1].stat+' / '+T[2].stat+' / '+T[3].stat+' / '+T[4].stat+'. Knuckles and bare hands hit harder with it.');
+add('Stats','per','Perception','See farther through the fog (Sight 2 + half PER). Bow reach grows +1 hex every 3 PER (max 6). Spell reach grows +1 hex every 5 PER (max 4). A little accuracy too. Perception is also the discipline stat of the Monk: Monk tiers unlock at PER '+T[1].stat+' / '+T[2].stat+' / '+T[3].stat+' / '+T[4].stat+'.');
+add('Stats','end','Endurance','Health (+6 per point), armor strength, and a sturdy build for any fighter.');
 add('Stats','cha','Charisma','Boosts healing and buffs by 3% per point, cheapens shops by 2% per point (max 25%), and is a second requirement for support skills like Rallying Cry (4), Resurrection (8) and Serenity (4).');
 add('Stats','int','Intelligence','More mana (+3 per point) and spell damage. Staves hit harder with it. Mage tiers unlock at INT '+T[1].stat+' / '+T[2].stat+' / '+T[3].stat+' / '+T[4].stat+'.');
 add('Stats','agi','Agility','Each 3 points add +1 hex of movement per AP, each 6 points add +1 AP, and every point adds 1.3% evasion. Bows hit harder with it. Archer tiers unlock at AGI '+T[1].stat+' / '+T[2].stat+' / '+T[3].stat+' / '+T[4].stat+'.');
 add('Stats','lck','Luck','Crit chance, rarer loot, better outcomes at ? tiles and a little evasion.');
 add('Skills','tiers','Skill tiers','Skills come in four tiers. A tier unlocks when your discipline stat reaches '+T[1].stat+', '+T[2].stat+', '+T[3].stat+' and '+T[4].stat+' and you reach level '+T[1].lvl+', '+T[2].lvl+', '+T[3].lvl+' and '+T[4].lvl+'. A hero with 11 STR, 11 INT and 11 AGI can learn tier 2 skills from the Warrior, Archer and Mage lists. You are free to mix.');
-add('Skills','disc','Disciplines','Warrior (Strength), Archer (Agility), Mage (Intelligence) and Monk (Endurance). They are not classes you pick: they are the skill lists your stats open. The name under a hero is just what they are best at right now.');
+add('Skills','disc','Disciplines','Warrior (Strength), Archer (Agility), Mage (Intelligence) and Monk (Perception). They are not classes you pick: they are the skill lists your stats open. The name under a hero is just what they are best at right now.');
 add('Skills','war','Warrior','Close-range bruiser. Basic reach 1 (a few skills reach 2). Big hits, stuns and armor-ignoring blows, plus guard and rally skills. Uses Strength.');
 add('Skills','arc','Archer','The longest reach in the game, growing with Perception. Piercing shots, volleys, crits and evasion. Uses Agility.');
-add('Skills','mon','Monk','Fights with hands and discipline. Reach 1. Flurries, stuns, whirlwinds, self-healing and iron-body defense. Uses Endurance, which also makes the Monk very sturdy.');
+add('Skills','mon','Monk','Fights with hands and discipline. Reach 1. Flurries, stuns, whirlwinds, self-healing and iron-body defense. Uses Perception. Endurance still makes the Monk sturdy.');
 add('Skills','mag','Mage','Elemental spells at medium reach, curses and healing. Spells hit weaknesses harder than anyone. Uses Intelligence.');
 add('Skills','weapons','Weapons','Anyone can carry any weapon. A weapon sets how far basic attacks reach and which stat they scale with: Sword = Strength (reach 1), Bow = Agility (reach grows with Perception), Staff = Intelligence (elemental, medium reach), Knuckles and bare hands = Endurance (reach 1). Skills always use their own discipline stat.');
 add('Skills','reach','Reach','How many hexes away you can hit. Swords and knuckles: 1. Bows start at 2 and gain +1 every 3 Perception (max 6). Spells start at 2 and gain +1 every 5 Perception (max 4). A target farther than 1 hex must also be in line of sight.');
@@ -168,18 +168,17 @@ const tiersFor=(label)=>[T[1].stat,T[2].stat,T[3].stat,T[4].stat].map((v,i)=>({a
 const MILES={
   str:()=>tiersFor('Warrior'),
   int:()=>tiersFor('Mage'),
-  end:()=>tiersFor('Monk'),
   agi:()=>{const o=tiersFor('Archer');for(let v=4;v<=25;v+=3)o.push({at:v,text:`+1 hex of movement per AP (${2+Math.floor((v-1)/3)} total)`});for(const v of [7,13,19])o.push({at:v,text:`+1 Action Point`});return o},
-  per:()=>{const o=[];for(let v=3;v<=21;v+=2)o.push({at:v,text:`+1 Sight`});for(let v=4;v<=13;v+=3)o.push({at:v,text:`bow reach ${2+Math.floor((v-1)/3)} hexes`});for(const v of [6,11])o.push({at:v,text:`spell reach ${2+Math.floor((v-1)/5)} hexes`});return o},
-  cha:()=>[{at:2,text:'Mend opens (with INT 3)'},{at:4,text:'Rallying Cry, Circle of Mending, Serenity open'},{at:8,text:'Warlord\'s Banner, Resurrection, Perfect Zen open'},{at:13,text:'Shop discount reaches the 25% maximum'}],
+  per:()=>{const o=tiersFor('Monk');for(let v=3;v<=21;v+=2)o.push({at:v,text:`+1 Sight`});for(let v=4;v<=13;v+=3)o.push({at:v,text:`bow reach ${2+Math.floor((v-1)/3)} hexes`});for(const v of [6,11])o.push({at:v,text:`spell reach ${2+Math.floor((v-1)/5)} hexes`});return o},
+  cha:()=>[{at:4,text:'Rallying Cry, Circle of Mending, Serenity open'},{at:8,text:'Warlord\'s Banner, Resurrection, Perfect Zen open'},{at:13,text:'Shop discount reaches the 25% maximum'}],
   lck:()=>[{at:5,text:'noticeably more crits and loot'},{at:10,text:'better ? tile outcomes'},{at:20,text:'crit chance +24%'}]
 };
 H.next=(stat,v)=>{const l=MILES[stat]?MILES[stat]():[];const up=l.filter(x=>x.at>v).sort((a,b)=>a.at-b.at)[0];return up?{at:up.at,more:up.at-v,text:up.text,cost:TGH.costBetween(v,up.at)}:null};
 // What a single extra point gives right now, in plain words.
 H.perPoint={
   str:'+about 1.8 damage on every sword swing and Warrior skill',
-  per:'0.4% accuracy, and sooner or later more Sight and reach',
-  end:'+6 max health, +1 max mana, stronger armor, harder Monk hits',
+  per:'0.4% accuracy, harder Monk hits, and sooner or later more Sight and reach',
+  end:'+6 max health, +1 max mana, stronger armor',
   cha:'+3% healing and buffs, 2% cheaper shops',
   int:'+3 max mana, about 1.8 damage on staff attacks and every spell',
   agi:'+1.3% evasion, 0.6% crit, about 1.8 damage on bow shots and Archer skills',

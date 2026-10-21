@@ -95,7 +95,7 @@ TGH.addFat=function(h,x){
 /* ---------- heroes ---------- */
 TGH.newHero=function(o){
   const h={id:uid(),name:o.name,gender:o.gender,look:Object.assign({},o.look),level:1,xp:0,base:Object.assign({},o.base),
-    points:0,skillPoints:1,skills:[],equip:{},attune:'fire',arrowEl:'fire',hp:1,mp:1,ap:2,c:0,r:0,down:false,st:{}};
+    points:0,skillPoints:0,picks:[],skills:[],equip:{},attune:'fire',arrowEl:'fire',hp:1,mp:1,ap:2,c:0,r:0,down:false,st:{}};
   TGH.recalc(h,{});h.hp=h.maxHp;h.mp=h.maxMp;h.ap=h.maxAp;
   return h;
 };
@@ -130,7 +130,7 @@ TGH.gainXp=function(h,xp,town){
   xp=Math.round(xp*(1+((h.bonus&&h.bonus.xp)||0)/100));
   h.xp+=xp;let gained=0;
   while(h.level<TGH.MAX_LEVEL&&h.xp>=TGH.xpNeed(h.level)){
-    h.xp-=TGH.xpNeed(h.level);h.level++;gained++;h.points+=TGH.POINTS_PER_LEVEL;h.skillPoints+=1;
+    h.xp-=TGH.xpNeed(h.level);h.level++;gained++;h.points+=TGH.POINTS_PER_LEVEL;if(!h.picks)h.picks=Array(h.skillPoints||0).fill(4);const pk=TGH.SKILL_PICKS[h.level];if(pk){h.picks.push(pk);h.skillPoints=h.picks.length}
     const was=h.maxHp;TGH.recalc(h,town);h.hp=Math.min(h.maxHp,h.hp+(h.maxHp-was));
     if(h.down){}
   }
@@ -141,7 +141,7 @@ TGH.gainXp=function(h,xp,town){
 TGH.statCost=v=>{const t=v+1;return t<=6?1:2+Math.floor((t-7)/3)};
 TGH.costBetween=(v,to)=>{let c=0;for(let x=v;x<to;x++)c+=TGH.statCost(x);return c};
 TGH.spendPoint=function(h,k,town){const c=TGH.statCost(h.base[k]);if(h.points<c)return false;h.base[k]++;h.points-=c;const was=h.maxHp,wm=h.maxMp;TGH.recalc(h,town);if(!h.down){h.hp+=Math.max(0,h.maxHp-was);h.mp+=Math.max(0,h.maxMp-wm)}h.hp=Math.min(h.hp,h.maxHp);h.mp=Math.min(h.mp,h.maxMp);return true};
-TGH.learnSkill=function(h,id){if(h.skillPoints<=0||!TGH.canLearn(h,id))return false;h.skills.push(id);h.skillPoints--;return true};
+TGH.learnSkill=function(h,id){if(!TGH.canLearn(h,id))return false;const i=TGH.pickFor(h,id);if(i<0)return false;h.picks.splice(i,1);h.skills.push(id);h.skillPoints=h.picks.length;return true};
 TGH.skillMp=(h,k)=>k.mpPct?Math.max(k.mp,Math.round(h.maxMp*k.mpPct)):k.mp;
 // Which kind of fighter a hero looks like right now, from the stat they favour. Nobody picks a class: this is only a name.
 TGH.heroTitle=h=>{const s=h.stats,d=TGH.DISC;
@@ -152,7 +152,7 @@ TGH.heroTitle=h=>{const s=h.stats,d=TGH.DISC;
   const base=d[top[0]].n;
   return second[1]>=Math.max(4,m-2)?base+'-'+d[second[0]].n.toLowerCase():base;};
 TGH.bestWeaponFor=h=>{const s=h.base;const m=Math.max(s.str,s.agi,s.int,s.end);
-  if(s.end===m&&s.end>s.str&&s.end>s.agi&&s.end>s.int)return 'fist';
+  if(s.per===Math.max(s.str,s.agi,s.int,s.per)&&s.per>s.str&&s.per>s.agi&&s.per>s.int)return 'fist';
   return s.str>=s.agi&&s.str>=s.int?'sword':s.agi>=s.int?'bow':'staff'};
 
 /* ---------- monsters ---------- */

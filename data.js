@@ -54,12 +54,16 @@ const sk=(id,o)=>{S[id]=Object.assign({id,mp:0,ap:2,acc:100,crit:0,el:'physical'
 /* Skill tiers. Your discipline stat decides what you are offered: tier 1 needs 3 in the stat, tier 2 needs 10, tier 3 needs 18
    and tier 4 needs 26 (plus a level). A few support skills also want Charisma. A hero with 11 STR, 11 INT and 11 AGI can
    learn tier 2 skills from the warrior, archer and mage lists at once. */
-TGH.TIERS={1:{stat:5,lvl:1,n:'Novice'},2:{stat:10,lvl:4,n:'Adept'},3:{stat:18,lvl:10,n:'Master'},4:{stat:26,lvl:20,n:'Legend'}};
+TGH.TIERS={1:{stat:5,lvl:2,n:'Novice'},2:{stat:10,lvl:6,n:'Adept'},3:{stat:18,lvl:10,n:'Master'},4:{stat:26,lvl:20,n:'Legend'}};
+/* Skills come in picks, not points: heroes start with none, learn their first basic skill at level 2, and then pick again at the levels below.
+   The number is the highest tier that pick may be spent on. Each pick still needs the stat and level for the skill chosen. Twelve picks by level 40. */
+TGH.SKILL_PICKS={2:1,4:1,6:2,8:2,10:3,13:3,16:3,20:4,25:4,30:4,35:4,40:4};
+TGH.nextPick=lv=>{const ls=Object.keys(TGH.SKILL_PICKS).map(Number).sort((a,b)=>a-b).find(x=>x>lv);return ls?{lvl:ls,tier:TGH.SKILL_PICKS[ls]}:null};
 // Warrior (STR).
 sk('cleave',{disc:'war',tier:1,n:'Cleave',mp:6,ap:2,range:1,tgt:'enemy',aoe:1,mult:1.3,need:{str:5},d:'Swings through the target and every enemy next to it.'});
 sk('crush',{disc:'war',tier:1,n:'Crushing Blow',mp:6,ap:2,range:1,tgt:'enemy',mult:2.5,acc:95,crit:10,cdmg:25,need:{str:5},d:'A slow, heavy strike. Hits hard when it lands.'});
-sk('wall',{disc:'war',tier:1,n:'Shield Wall',mp:5,ap:1,range:0,tgt:'self',guard:{n:2,taken:.4,taunt:true},need:{str:5,end:4},d:'Takes 60% less damage for 2 rounds, and enemies prefer to hit this hero.'});
-sk('wind',{disc:'war',tier:1,n:'Second Wind',mp:6,ap:1,range:0,tgt:'self',healPct:.4,need:{str:5,end:5},d:'Recovers 40% of max health.'});
+sk('wall',{disc:'war',tier:1,n:'Shield Wall',mp:5,ap:1,range:0,tgt:'self',guard:{n:2,taken:.4,taunt:true},need:{str:5},d:'Takes 60% less damage for 2 rounds, and enemies prefer to hit this hero.'});
+sk('wind',{disc:'war',tier:1,n:'Second Wind',mp:6,ap:1,range:0,tgt:'self',healPct:.4,need:{str:5},d:'Recovers 40% of max health.'});
 sk('stunblow',{disc:'war',tier:2,n:'Battle Stun',mp:9,ap:2,range:1,tgt:'enemy',mult:1.6,stun:1,need:{str:10},d:'Stuns the target for 1 turn. Bosses shake it off.'});
 sk('quake',{disc:'war',tier:2,n:'Earthshatter',mp:14,ap:3,range:2,tgt:'enemy',aoe:1,mult:1.7,stun:1,el:'fighting',need:{str:10},d:'Slams the ground two hexes away. Enemies caught in the burst may be stunned.'});
 sk('sunder',{disc:'war',tier:2,n:'Sunder',mp:9,ap:2,range:1,tgt:'enemy',mult:3,pierce:true,crit:10,cdmg:25,need:{str:10},d:'A heavy blow that ignores armor.'});
@@ -72,7 +76,7 @@ sk('worldbreaker',{disc:'war',tier:4,n:'Worldbreaker',mp:30,ap:4,range:2,tgt:'en
 sk('pierceshot',{disc:'arc',tier:1,n:'Piercing Shot',mp:6,ap:2,range:'bow',tgt:'enemy',mult:1.8,crit:35,need:{agi:5},d:'An aimed shot that looks for weak points.'});
 sk('volley',{disc:'arc',tier:1,n:'Volley',mp:8,ap:2,range:'bow',tgt:'enemy',aoe:1,mult:1.1,acc:95,crit:10,need:{agi:5},d:'Rains arrows on the target and everything next to it.'});
 sk('double',{disc:'arc',tier:1,n:'Double Shot',mp:7,ap:2,range:'bow',tgt:'enemy',mult:1,hits:2,crit:5,need:{agi:5},d:'Two quick arrows at one target.'});
-sk('cripple',{disc:'arc',tier:1,n:'Crippling Arrow',mp:6,ap:2,range:'bow',tgt:'enemy',mult:1.45,weakenAtk:{n:3,v:.3},need:{agi:5,per:4},d:'On hit, the target deals 30% less damage for 3 rounds.'});
+sk('cripple',{disc:'arc',tier:1,n:'Crippling Arrow',mp:6,ap:2,range:'bow',tgt:'enemy',mult:1.45,weakenAtk:{n:3,v:.3},need:{agi:5},d:'On hit, the target deals 30% less damage for 3 rounds.'});
 sk('imbue',{disc:'arc',tier:2,n:'Elemental Arrows',mp:8,ap:1,range:0,tgt:'self',imbue:3,need:{agi:10},d:'For 3 turns arrows carry an element of your choice, so they can hit weaknesses like a mage’s spells.'});
 sk('sniper',{disc:'arc',tier:2,n:'Sniper',mp:9,ap:1,range:0,tgt:'self',critBuff:{n:2,v:80},need:{agi:10},d:'Crit chance rises to 80% for 2 turns.'});
 sk('assassin',{disc:'arc',tier:2,n:'Assassinate',mp:13,ap:3,range:'bow',tgt:'enemy',mult:2.9,crit:30,cdmg:25,exec:.3,need:{agi:10},d:'A lethal shot. Finishes off any non-boss enemy it leaves under 30% health.'});
@@ -85,7 +89,7 @@ sk('starfall',{disc:'arc',tier:4,n:'Rain of Stars',mp:30,ap:4,range:'bow',tgt:'e
 sk('bolt',{disc:'mag',tier:1,n:'Elemental Bolt',mp:8,ap:2,range:'mage',tgt:'enemy',mult:2,el:'attune',need:{int:5},d:'A focused blast in the attuned element.'});
 sk('storm',{disc:'mag',tier:1,n:'Elemental Storm',mp:12,ap:3,range:'mage',tgt:'enemy',aoe:1,mult:1.15,el:'attune',need:{int:5},d:'Engulfs the target and its neighbours in the attuned element.'});
 sk('hex',{disc:'mag',tier:1,n:'Hex',mp:6,ap:1,range:'mage',tgt:'enemy',mult:0,hexed:{n:3,v:.33},need:{int:5},d:'The target takes 33% more damage from everyone for 3 rounds.'});
-sk('mend',{disc:'mag',tier:1,n:'Mend',mp:9,ap:2,range:'mage',tgt:'ally',healPct:.4,healInt:2.7,need:{int:5,cha:4},d:'Heals one ally for 40% of their max health plus 2.7x the caster’s INT.'});
+sk('mend',{disc:'mag',tier:1,n:'Mend',mp:9,ap:2,range:'mage',tgt:'ally',healPct:.4,healInt:2.7,need:{int:5},d:'Heals one ally for 40% of their max health plus 2.7x the caster’s INT.'});
 sk('drain',{disc:'mag',tier:1,n:'Life Drain',mp:8,ap:2,range:'mage',tgt:'enemy',mult:1.5,el:'dark',drain:.5,need:{int:5},d:'Dark damage. Heals the caster for half the damage dealt.'});
 sk('chain',{disc:'mag',tier:2,n:'Chain Elemental',mp:12,ap:3,range:'mage',tgt:'enemy',mult:1.6,el:'attune',chain:[.8,.6,.4],need:{int:10},d:'A bolt that leaps between nearby enemies, losing force each jump.'});
 sk('nova',{disc:'mag',tier:2,n:'Elemental Nova',mp:16,ap:3,range:'mage',tgt:'enemy',aoe:2,mult:1.7,el:'attune',need:{int:10},d:'A burst of the attuned element two hexes wide.'});
@@ -95,28 +99,30 @@ sk('cataclysm',{disc:'mag',tier:3,n:'Cataclysm',mp:28,ap:3,range:'mage',tgt:'ene
 sk('meteor',{disc:'mag',tier:3,n:'Starfall',mp:24,mpPct:.5,ap:3,range:'mage',tgt:'enemy',mult:9,el:'attune',weak:2,noRes:true,crit:10,need:{int:18},d:'A falling star that ignores resistance. Costs half of max MP. Weakness hits deal 2x.'});
 sk('revive',{disc:'mag',tier:3,n:'Resurrection',mp:30,ap:3,range:'mage',tgt:'fallen',healPct:.5,need:{int:18,cha:8},d:'Brings a fallen ally back with 50% health, from across the field.'});
 sk('annihilate',{disc:'mag',tier:4,n:'Annihilate',mp:40,mpPct:.7,ap:4,range:'mage',tgt:'enemy',aoe:2,mult:10,el:'attune',weak:2.5,noRes:true,crit:15,need:{int:26},d:'Tears a hole in the world. Ignores resistance and armor in a 2-hex burst. Costs 70% of max MP.'});
-// Monk (END): the body is the weapon. Calm, tough, quick hands.
-sk('palm',{disc:'mon',tier:1,n:'Open Palm',mp:5,ap:2,range:1,tgt:'enemy',mult:1.7,acc:100,crit:10,need:{end:5},d:'A clean, fast palm strike that rarely misses and crits easily.'});
-sk('flurry',{disc:'mon',tier:1,n:'Flurry of Fists',mp:7,ap:2,range:1,tgt:'enemy',mult:.65,hits:3,crit:5,need:{end:5},d:'Three quick punches at one target. Each rolls to hit.'});
-sk('chi',{disc:'mon',tier:1,n:'Inner Calm',mp:4,ap:1,range:0,tgt:'self',healPct:.3,mpGain:.2,need:{end:5},d:'A slow breath. Recovers 30% of max health and 20% of max mana.'});
-sk('stoneskin',{disc:'mon',tier:1,n:'Stone Skin',mp:5,ap:1,range:0,tgt:'self',guard:{n:2,taken:.5,taunt:false},need:{end:5,agi:4},d:'Hardens the body: takes half damage for 2 rounds.'});
-sk('pressure',{disc:'mon',tier:2,n:'Pressure Point',mp:9,ap:2,range:1,tgt:'enemy',mult:1.5,stun:1,crit:10,need:{end:10},d:'Strikes a nerve. Stuns the target for 1 turn. Bosses shake it off.'});
-sk('whirl',{disc:'mon',tier:2,n:'Whirlwind Kick',mp:11,ap:2,range:0,tgt:'around',aoe:1,mult:1.5,need:{end:10},d:'Spins and kicks every enemy standing next to you.'});
-sk('ironbody',{disc:'mon',tier:2,n:'Iron Body',mp:8,ap:1,range:0,tgt:'self',guard:{n:3,taken:.3,taunt:true},need:{end:10},d:'Takes 70% less damage for 3 rounds, and enemies prefer to hit this hero.'});
-sk('serenity',{disc:'mon',tier:2,n:'Serenity',mp:12,ap:2,range:0,tgt:'party',healPct:.25,mpGain:.1,need:{end:10,cha:4},d:'A calm that spreads to your partner. Both heroes recover 25% of max health and 10% of max mana.'});
-sk('dragon',{disc:'mon',tier:3,n:'Dragon Fist',mp:18,ap:3,range:1,tgt:'enemy',mult:4.5,pierce:true,crit:20,cdmg:30,need:{end:18},d:'A rising strike that ignores armor and crits hard.'});
-sk('hundred',{disc:'mon',tier:3,n:'Hundred Fists',mp:20,ap:3,range:1,tgt:'enemy',mult:.7,hits:7,crit:8,need:{end:18},d:'A blur of seven strikes. Each rolls to hit and crit on its own.'});
-sk('zen',{disc:'mon',tier:3,n:'Perfect Zen',mp:14,ap:2,range:0,tgt:'self',healPct:.55,mpGain:.4,guard:{n:2,taken:.6,taunt:false},need:{end:18,cha:8},d:'Total stillness. Recovers 55% of max health and 40% of max mana, and takes 40% less damage for 2 rounds.'});
-sk('avatar',{disc:'mon',tier:4,n:'Avatar of Stillness',mp:28,ap:4,range:0,tgt:'party',healPct:.3,buff:{n:4,dmg:.6,def:.6,taunt:false,crit:20},need:{end:26},d:'Both heroes heal 30% and, for 4 rounds, deal 60% more damage, take 60% less and gain +20% crit.'});
+// Monk (PER): the body is the weapon. Calm, tough, quick hands.
+sk('palm',{disc:'mon',tier:1,n:'Open Palm',mp:5,ap:2,range:1,tgt:'enemy',mult:1.7,acc:100,crit:10,need:{per:5},d:'A clean, fast palm strike that rarely misses and crits easily.'});
+sk('flurry',{disc:'mon',tier:1,n:'Flurry of Fists',mp:7,ap:2,range:1,tgt:'enemy',mult:.65,hits:3,crit:5,need:{per:5},d:'Three quick punches at one target. Each rolls to hit.'});
+sk('chi',{disc:'mon',tier:1,n:'Inner Calm',mp:4,ap:1,range:0,tgt:'self',healPct:.3,mpGain:.2,need:{per:5},d:'A slow breath. Recovers 30% of max health and 20% of max mana.'});
+sk('stoneskin',{disc:'mon',tier:1,n:'Stone Skin',mp:5,ap:1,range:0,tgt:'self',guard:{n:2,taken:.5,taunt:false},need:{per:5},d:'Hardens the body: takes half damage for 2 rounds.'});
+sk('pressure',{disc:'mon',tier:2,n:'Pressure Point',mp:9,ap:2,range:1,tgt:'enemy',mult:1.5,stun:1,crit:10,need:{per:10},d:'Strikes a nerve. Stuns the target for 1 turn. Bosses shake it off.'});
+sk('whirl',{disc:'mon',tier:2,n:'Whirlwind Kick',mp:11,ap:2,range:0,tgt:'around',aoe:1,mult:1.5,need:{per:10},d:'Spins and kicks every enemy standing next to you.'});
+sk('ironbody',{disc:'mon',tier:2,n:'Iron Body',mp:8,ap:1,range:0,tgt:'self',guard:{n:3,taken:.3,taunt:true},need:{per:10},d:'Takes 70% less damage for 3 rounds, and enemies prefer to hit this hero.'});
+sk('serenity',{disc:'mon',tier:2,n:'Serenity',mp:12,ap:2,range:0,tgt:'party',healPct:.25,mpGain:.1,need:{per:10,cha:4},d:'A calm that spreads to your partner. Both heroes recover 25% of max health and 10% of max mana.'});
+sk('dragon',{disc:'mon',tier:3,n:'Dragon Fist',mp:18,ap:3,range:1,tgt:'enemy',mult:4.5,pierce:true,crit:20,cdmg:30,need:{per:18},d:'A rising strike that ignores armor and crits hard.'});
+sk('hundred',{disc:'mon',tier:3,n:'Hundred Fists',mp:20,ap:3,range:1,tgt:'enemy',mult:.7,hits:7,crit:8,need:{per:18},d:'A blur of seven strikes. Each rolls to hit and crit on its own.'});
+sk('zen',{disc:'mon',tier:3,n:'Perfect Zen',mp:14,ap:2,range:0,tgt:'self',healPct:.55,mpGain:.4,guard:{n:2,taken:.6,taunt:false},need:{per:18,cha:8},d:'Total stillness. Recovers 55% of max health and 40% of max mana, and takes 40% less damage for 2 rounds.'});
+sk('avatar',{disc:'mon',tier:4,n:'Avatar of Stillness',mp:28,ap:4,range:0,tgt:'party',healPct:.3,buff:{n:4,dmg:.6,def:.6,taunt:false,crit:20},need:{per:26},d:'Both heroes heal 30% and, for 4 rounds, deal 60% more damage, take 60% less and gain +20% crit.'});
 
 TGH.DISC={war:{n:'Warrior',stat:'str',col:'#d9534f',blurb:'Heavy armor and big hits. Fights up close (reach 1). Grows with Strength.'},
   arc:{n:'Archer',stat:'agi',col:'#5cb85c',blurb:'Longest reach of anyone. Bow reach grows with Perception. Grows with Agility.'},
   mag:{n:'Mage',stat:'int',col:'#6d6bdc',blurb:'Elemental spells, healing and curses at medium reach. Grows with Intelligence.'},
-  mon:{n:'Monk',stat:'end',col:'#e0a43a',blurb:'Bare hands and iron discipline. Fights up close and heals itself. Grows with Endurance.'}};
+  mon:{n:'Monk',stat:'per',col:'#e0a43a',blurb:'Bare hands and iron discipline. Fights up close and heals itself. Grows with Perception.'}};
 
 TGH.skillLvl=k=>TGH.TIERS[k.tier].lvl;
 TGH.skillReqText=k=>Object.entries(k.need).map(([s,v])=>TGH.STATN[s]+' '+v).join(', ')+(TGH.skillLvl(k)>1?`, level ${TGH.skillLvl(k)}`:'');
 TGH.canLearn=(h,id)=>{const k=S[id];return !h.skills.includes(id)&&Object.entries(k.need).every(([s,v])=>h.stats[s]>=v)&&h.level>=TGH.skillLvl(k)};
+// A pick that can be spent on this skill: the lowest cap that still covers its tier.
+TGH.pickFor=(h,id)=>{const k=S[id];if(!h.picks)h.picks=Array(h.skillPoints||0).fill(4);let bi=-1;h.picks.forEach((c,i)=>{if(c>=k.tier&&(bi<0||c<h.picks[bi]))bi=i});return bi};
 TGH.skillRange=(h,k)=>k.range==='bow'?TGH.rangeBow(h):k.range==='mage'?TGH.rangeMage(h):k.range;
 
 /* ---------- weapons: no classes, only what you carry and how you are built ---------- */
@@ -124,8 +130,8 @@ TGH.FAM={
   sword:{n:'Sword',stat:'str',range:1,disc:'war',el:'physical',ap:1,mult:1,acc:95},
   bow:{n:'Bow',stat:'agi',range:'bow',disc:'arc',el:'physical',ap:1,mult:1,acc:88},
   staff:{n:'Staff',stat:'int',range:'mage',disc:'mag',el:'attune',ap:1,mult:.9,acc:100},
-  fist:{n:'Knuckles',stat:'end',range:1,disc:'mon',el:'physical',ap:1,mult:1,acc:97},
-  bare:{n:'Bare hands',stat:'end',range:1,disc:'mon',el:'physical',ap:1,mult:.8,acc:95}
+  fist:{n:'Knuckles',stat:'per',range:1,disc:'mon',el:'physical',ap:1,mult:1,acc:97},
+  bare:{n:'Bare hands',stat:'per',range:1,disc:'mon',el:'physical',ap:1,mult:.8,acc:95}
 };
 
 /* ---------- monsters ----------
