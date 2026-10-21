@@ -318,14 +318,14 @@ C.setWeapon=function(rig,h){
 };
 
 /* ---------- monsters ---------- */
-const BIO_COL={cave:['#8b7a6a','#4a3e38','#c9b08a'],wilds:['#5f8a45','#2e4a26','#b8e070'],wasteland:['#9a4a34','#4a1e16','#ff9a3a'],summit:['#b8d4e8','#5a7a94','#e8faff'],dark:['#4a3a6a','#1c1230','#c090ff']};
-C.palette=function(biome){const b=BIO_COL[biome]||BIO_COL.cave;return {main:b[0],dark:b[1],accent:b[2]}};
+const BIO_COL={sky:['#8a8ab8','#3e3e68','#fff07a'],badlands:['#a88a58','#5a4426','#e0c080'],cave:['#8b7a6a','#4a3e38','#c9b08a'],forest:['#5f8a45','#2e4a26','#b8e070'],island:['#9a4a34','#4a1e16','#ff9a3a'],tundra:['#b8d4e8','#5a7a94','#e8faff'],abyss:['#4a3a6a','#1c1230','#c090ff']};
+C.palette=function(biome){const BB=TGH.BIOMES[biome];const b=BIO_COL[(BB&&BB.land)||biome]||BIO_COL.cave;return {main:b[0],dark:b[1],accent:b[2]}};
 function glowEyes(parent,col,x,y,z,s,gap){for(const k of [-1,1]){sph(parent,col,k*gap+x,y,z,s,s*1.2,s*.6,{glow:true});sph(parent,'#14101c',k*gap+x,y,z+s*.2,s*.45,s*.85,s*.3,{glow:true,noOutline:true})}}
 C.buildMonster=function(f,biome){
   const K=TGH.KINDS[f.kind]||TGH.KINDS.beast,look=K.look;
   const P=C.palette(biome);const ML=TGH.MONLOOK&&TGH.MONLOOK[f.name]||null;
   if(f.color){P.main=f.color;P.dark=ML?ML.dark:C.shade(f.color,-.45)}if(ML)P.accent=ML.acc;
-  const eye=f.eye||(biome==='dark'?'#ff6adf':'#ffd34a');
+  const eye=f.eye||((TGH.BIOMES[biome]&&TGH.BIOMES[biome].land==='abyss')?'#ff6adf':'#ffd34a');
   const root=new T.Group(),rig={type:look,root,parts:{}};const body=new T.Group();root.add(body);rig.body=body;
   const M=P.main,D=P.dark,A=P.accent;
   if(look==='beast'){

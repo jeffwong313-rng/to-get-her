@@ -225,6 +225,7 @@ function buildCard(key){
   const c=B.cost(L+1);
   return `<div class="bcard"><b>${B.n} · ${L?'Lv '+L:'in ruins'}</b><small>${esc(B.d)}</small><div>${costHtml(c,t)}</div><button class="gold small" data-build="${key}" ${canPay(c,t)?'':'disabled'}>${L?'Upgrade to Lv '+(L+1):'Rebuild'}</button></div>`;
 }
+const gateLand={};
 function townPanel(p){
   const s=G.s,t=s.town;
   if(p.startsWith('hero')){U.heroMenu(+p[4]);return}
@@ -233,10 +234,13 @@ function townPanel(p){
   if(p==='gate'){
     title='The Stone Gate';
     body=TGH.ADVENTURES.map(k=>{
-      const B=TGH.BIOMES[k],req=TGH.ADV_REQ[k],open=!req||t.beaten.includes(req),done=t.beaten.includes(k);
-      const lvl=TGH.LEVEL_BASE[k];
+      const req=TGH.ADV_REQ[k],open=!req||t.beaten.includes(req),done=t.beaten.includes(k),L=TGH.LENGTHS[k];
       if(!open&&!done)return `<div class="advcard locked"><div><b>???</b><small>A land you have not reached yet. Beat the one before it to see more.</small></div></div>`;
-      return `<div class="advcard ${open?'':'locked'}"><div><b>${esc(B.name)}</b> ${done?'<span class="done">cleared</span>':''}<small>${esc(B.flavor)}</small>${(()=>{const m=TGH.landMod(t,k);return m?`<small class="mod ${TGH.LAND_MOD[m].bad?'bad':'good'}"><b>${TGH.LAND_MOD[m].n}:</b> ${TGH.LAND_MOD[m].d}</small>`:'<small class="mod">No twist on this trip.</small>'})()}${k==='cave'?`<small>Cave beasts beaten: ${(t.caveBeaten||[]).length}/3</small>`:''}</div>${open?`<button class="gold small" data-go="${k}">Set out</button>`:`<span class="lock">Beat ${esc(TGH.BIOMES[req].name)} first</span>`}</div>`;
+      const pick=(k==='cave'||k==='dark')?null:(TGH.LANDS[gateLand[k]]&&TGH.LAND_PICK.includes(gateLand[k])?gateLand[k]:TGH.LAND_PICK[0]);
+      const key=TGH.biomeKey(k,pick),B=TGH.BIOMES[key];
+      const chips=pick?`<div class="landrow">${TGH.LAND_PICK.map(l=>`<button class="landchip ${l===pick?'on':''}" data-land="${k}|${l}" style="border-color:${TGH.EL_COL[TGH.LANDS[l].el]}"><span style="color:${TGH.EL_COL[TGH.LANDS[l].el]}">\u25CF</span> ${esc(TGH.LANDS[l].name)}</button>`).join('')}</div>`:'';
+      const m=TGH.landMod(t,key);
+      return `<div class="advcard"><div><b>${esc(pick?L.n:B.name)}</b> ${done?'<span class="done">cleared</span>':''}${pick?`<small>${esc(L.feel)}</small>`:''}${chips}${pick?`<small><b>${esc(B.name.split(': ')[1])}</b> (${esc(B.el)}): ${esc(B.flavor)}</small>`:`<small>${esc(B.flavor)}</small>`}${m?`<small class="mod ${TGH.LAND_MOD[m].bad?'bad':'good'}"><b>${TGH.LAND_MOD[m].n}:</b> ${TGH.LAND_MOD[m].d}</small>`:'<small class="mod">No twist on this trip.</small>'}${k==='cave'?`<small>Cave beasts beaten: ${(t.caveBeaten||[]).length}/3</small>`:''}</div><button class="gold small" data-go="${k}|${pick||''}">Set out</button></div>`;
     }).join('');
   }else if(p==='lodge'){
     title='Family Home';
@@ -276,7 +280,8 @@ function townPanel(p){
   m.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const [id,pr]=b.dataset.buy.split('|');if(t.gold<+pr)return;t.gold-=+pr;t.items[id]=(t.items[id]||0)+1;G.save();reopen()});
   m.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{const i=t.pack.findIndex(x=>x.id===b.dataset.sell);if(i<0)return;t.gold+=TGH.sellValue(t.pack[i]);t.pack.splice(i,1);G.save();reopen()});
   const rest=m.querySelector('#rest');if(rest)rest.onclick=()=>{for(const h of s.heroes){h.hp=h.maxHp;h.mp=h.maxMp}U.toast('You feel rested.');};
-  m.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{m.remove();scr().innerHTML='';U.hudVisible(true);G.startRun(b.dataset.go)});
+  m.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{m.remove();scr().innerHTML='';U.hudVisible(true);{const [len,land]=b.dataset.go.split('|');G.startRun(len,land||undefined)}});
+  m.querySelectorAll('[data-land]').forEach(b=>b.onclick=()=>{const [len,land]=b.dataset.land.split('|');gateLand[len]=land;reopen()});
 }
 function settings(){
   const m=document.createElement('div');m.className='modal';

@@ -254,7 +254,7 @@ U.pickElement=function(title){
 // What the party knows about a monster, in four stages learned by scouting (perception).
 U.bestiary=function(){
   const be=G.bestiary(),names=Object.keys(be);
-  const all=[];for(const k of TGH.ADVENTURES){const B=TGH.BIOMES[k];for(const m of B.mons)all.push({n:m[0],b:B.name})}
+  const all=[];for(const k of Object.keys(TGH.LANDS)){const B=TGH.LANDS[k];for(const m of B.mons)all.push({n:m[0],b:B.name})}
   const seen=names.length;
   const cards=names.sort().map(n=>{const e=be[n],sn=e.snap;
     if(!sn)return '';
@@ -323,6 +323,27 @@ U.modalChoice=function(title,body,buttons){
     m.innerHTML=`<div class="mbox"><h2>${esc(title)}</h2><div class="mbody">${body}</div><div class="mbtns">${buttons.map((b,i)=>`<button class="mb ${b.cls||''}" data-i="${i}" style="${b.col?'border-color:'+b.col+';color:'+b.col:''}">${esc(b.label)}</button>`).join('')}</div></div>`;
     document.body.appendChild(m);
     m.querySelectorAll('.mb').forEach(b=>b.onclick=()=>{m.remove();res(buttons[+b.dataset.i].v!==undefined?buttons[+b.dataset.i].v:buttons[+b.dataset.i].label)});
+  });
+};
+U.campMenu=function(h,pts){
+  return new Promise(res=>{
+    const use={},acts=TGH.CAMP_ACT,keys=Object.keys(acts);
+    const m=document.createElement('div');m.className='modal';
+    const drawn=()=>{
+      const used=keys.reduce((a,k)=>a+(use[k]||0),0),left=pts-used;
+      const stN={end:'Endurance',agi:'Agility',str:'Strength',per:'Perception',int:'Intelligence'};
+      m.innerHTML=`<div class="mbox wide"><h2>Campsite</h2><div class="mbody scroll"><p>A sheltered hollow with a ring of old stones. The night is only so long: you have ${pts} camp points to spend. ${esc(h.name)} found the spot and lends their skill to each activity.</p>
+        <div class="campleft">${Array.from({length:pts},(_,i)=>`<i class="${i<used?'on':''}"></i>`).join('')}<span>${left} of ${pts} camp point${pts>1?'s':''} left</span></div>
+        ${keys.map(k=>{const A=acts[k],n=use[k]||0,b=Math.round(TGH.campBonus(h,k)*100);
+          return `<div class="campact ${n?'on':''}"><span class="ci">${A.ico}</span><span class="ct"><b>${A.n}${n?' <span class="gold">\u00d7'+n+'</span>':''}</b><small>${esc(A.d)}</small><small class="mod good">${esc(h.name)}'s ${stN[A.stat]} adds +${b}%</small></span>
+          <span class="cb"><button class="small" data-sub="${k}" ${n?'':'disabled'}>\u2212</button><button class="small gold" data-add="${k}" ${left?'':'disabled'}>+</button></span></div>`}).join('')}</div>
+        <div class="mbtns"><button class="mb gold" id="cgo" ${used?'':'disabled'}>Make camp${left?` (${left} unspent)`:''}</button><button class="mb" id="cno">Leave it</button></div></div>`;
+      m.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{use[b.dataset.add]=(use[b.dataset.add]||0)+1;drawn()});
+      m.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>{const k=b.dataset.sub;if(use[k]){use[k]--;if(!use[k])delete use[k]}drawn()});
+      m.querySelector('#cgo').onclick=()=>{m.remove();res(use)};
+      m.querySelector('#cno').onclick=()=>{m.remove();res(null)};
+    };
+    document.body.appendChild(m);drawn();
   });
 };
 U.eventBox=(title,text,buttons)=>U.modalChoice(title,`<p>${esc(text)}</p>`,buttons);

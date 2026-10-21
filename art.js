@@ -107,7 +107,7 @@ A.mountain=function(p,rg,B){
   const g=new T.Group();g.position.set(p.x,0,p.z);
   const h=1.5+rg()*.9,col=Ch.shade(B.edge,.2);
   cone(g,col,0,h/2,0,.85,h,{});
-  if(A.biome==='summit'||rg()<.4)cone(g,'#f4f8fb',0,h*.82,0,.34,h*.36,{ol:.012});
+  if((A.B&&A.B.land==='tundra')||rg()<.4)cone(g,'#f4f8fb',0,h*.82,0,.34,h*.36,{ol:.012});
   cone(g,Ch.shade(col,-.15),.5,.45,.2,.45,.9,{});
   return g;
 };
@@ -120,11 +120,14 @@ A.tree=function(p,rg){
 };
 A.deco=function(p,rg,biome){
   const g=new T.Group();g.position.set(p.x+(rg()-.5)*.8,0,p.z+(rg()-.5)*.8);
-  const B=TGH.BIOMES[biome];
-  if(biome==='wilds'){for(let i=0;i<3;i++)cone(g,'#7ab05a',(i-1)*.07,.1,(rg()-.5)*.1,.04,.22,{rz:(i-1)*.25,noOutline:true})}
-  else if(biome==='dark'){cone(g,'#a070ff',0,.18,0,.06,.36,{glow:true,rz:.1})}
-  else if(biome==='summit'){sph(g,'#ffffff',0,.04,0,.2,.08,.2,{noOutline:true})}
-  else if(biome==='wasteland'){sph(g,'#3a2a26',0,.07,0,.13,.1,.13,{noOutline:true});sph(g,'#ff9a3a',.04,.12,.03,.03,.03,.03,{glow:true})}
+  const B=TGH.BIOMES[biome]||TGH.BIOMES['wilds:forest'];
+  const land=B.land;
+  if(land==='forest'){for(let i=0;i<3;i++)cone(g,'#7ab05a',(i-1)*.07,.1,(rg()-.5)*.1,.04,.22,{rz:(i-1)*.25,noOutline:true})}
+  else if(land==='abyss'){cone(g,'#a070ff',0,.18,0,.06,.36,{glow:true,rz:.1})}
+  else if(land==='tundra'){sph(g,'#ffffff',0,.04,0,.2,.08,.2,{noOutline:true})}
+  else if(land==='sky'){cone(g,'#fff07a',0,.18,0,.05,.34,{glow:true,rz:-.2})}
+  else if(land==='badlands'){sph(g,'#d8c8a0',0,.06,0,.12,.07,.16,{noOutline:true});sph(g,'#d8c8a0',.1,.05,.05,.07,.05,.07,{noOutline:true})}
+  else if(land==='island'){sph(g,'#3a2a26',0,.07,0,.13,.1,.13,{noOutline:true});sph(g,'#ff9a3a',.04,.12,.03,.03,.03,.03,{glow:true})}
   else sph(g,Ch.shade(B.edge,.4),0,.07,0,.12,.09,.12,{noOutline:true});
   return g;
 };

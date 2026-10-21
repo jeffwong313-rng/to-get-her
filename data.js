@@ -140,23 +140,49 @@ TGH.KINDS={
   serpent:{hp:1,atk:1.05,mv:2,range:2,ap:2,look:'serpent'},
   skeleton:{hp:.9,atk:1,mv:2,range:1,ap:2,look:'skeleton'},
 };
-TGH.BIOMES={
-  cave:{name:'The Cave',el:'physical',mat:['stone','metal'],hazard:'water',block:['boulder','boulder','mountain'],
-    sky:'#1b1626',fog:'#120f1a',floor:['#7c7488','#6f6780'],edge:'#4a4358',w:12,h:16,mons:[['Cave Wolf','beast'],['Gloom Slime','slime'],['Cave Wraith','wraith'],['Rock Brute','brute'],['Cave Bat','bat'],['Burrow Spider','spider'],['Pit Serpent','serpent'],['Restless Dead','skeleton']],
-    flavor:'A short crawl through the caves near home, where something big has made its den.',diff:0,mult:1,packs:5,elites:1,camps:2,qs:3,chests:2,mats:5,boss:'cave'},
-  wilds:{name:'The Wilds',el:'grass',mat:['wood','hide','stone'],hazard:'water',block:['boulder','tree','mountain'],
-    sky:'#16241a',fog:'#0d160f',floor:['#6e8a54','#627c4a'],edge:'#3c4f2e',w:12,h:20,mons:[['Thornback','beast'],['Moss Slime','slime'],['Spore Wisp','wraith'],['Bark Brute','brute'],['Rot Bat','bat'],['Web Mother','spider'],['Vine Serpent','serpent'],['Rooted Dead','skeleton']],
-    flavor:'Days out in the untamed wilds, past the last farms and the last roads.',diff:.5,mult:1.3,packs:8,elites:2,camps:3,qs:4,chests:3,mats:7,boss:'The Rotting Oak'},
-  wasteland:{name:'The Wasteland',el:'fire',mat:['carbon','metal','stone'],hazard:'lava',block:['boulder','mountain'],
-    sky:'#2a1410',fog:'#1a0c0a',floor:['#8a5a44','#7c4f3c'],edge:'#4a2418',w:12,h:24,mons:[['Cinder Hound','beast'],['Magma Ooze','slime'],['Flame Wisp','wraith'],['Obsidian Brute','brute'],['Cinder Bat','bat'],['Lava Crawler','spider'],['Magma Wyrm','serpent'],['Charred Bones','skeleton']],
-    flavor:'A long haul across wastes the smoke has burned dead. Lava splits the ground.',diff:1,mult:1.7,packs:11,elites:3,camps:3,qs:5,chests:3,mats:9,boss:'Mother of Ash'},
-  summit:{name:'The Summit',el:'ice',mat:['crystal','stone','metal'],hazard:'water',block:['mountain','mountain','boulder'],
-    sky:'#12202e',fog:'#0c1620',floor:['#cfe0ec','#bdd2e2'],edge:'#6f8aa0',w:12,h:44,mons:[['Frost Wolf','beast'],['Rime Slime','slime'],['Ice Wraith','wraith'],['Glacier Brute','brute'],['Rime Bat','bat'],['Snow Weaver','spider'],['Ice Serpent','serpent'],['Frozen Dead','skeleton']],
-    flavor:'The climb to the highest point in the land, where everyone can sense a dark force waiting.',diff:1.5,mult:2.3,packs:22,elites:6,camps:6,qs:7,chests:6,mats:16,boss:'The Gatekeeper'},
-  dark:{name:'The Dark Side',el:'dark',mat:['void'],hazard:'void',block:['mountain','boulder'],
-    sky:'#07040c',fog:'#05030a',floor:['#3a2f50','#30284a'],edge:'#1a1230',w:12,h:54,mons:[['Gloom Hound','beast'],['Void Ooze','slime'],['Hollow Shade','wraith'],['Abyssal Knight','brute'],['Shade Bat','bat'],['Void Weaver','spider'],['Abyssal Eel','serpent'],['Unlit Dead','skeleton']],
-    flavor:'There is no sky here. This is where the darkness took her.',diff:2,mult:3,packs:26,elites:7,camps:6,qs:5,chests:5,mats:10,boss:'The Unlit King'},
+/* ---------- lengths and elemental lands ----------
+   An adventure is a LENGTH (how big and how hard) in a LAND (which element, monsters and guardian). The cave and the Dark Side are single places. */
+TGH.LENGTHS={
+  cave:{n:'The Cave',w:12,h:16,diff:0,mult:1,packs:5,elites:1,camps:2,qs:3,chests:2,feel:'A short crawl near home.'},
+  wilds:{n:'The Wilds',w:12,h:22,diff:.5,mult:1.3,packs:9,elites:2,camps:3,qs:4,chests:3,feel:'Days out past the last farms and the last roads.'},
+  wasteland:{n:'The Wasteland',w:12,h:30,diff:1,mult:1.7,packs:15,elites:4,camps:4,qs:5,chests:4,feel:'A long haul across hard, empty ground.'},
+  summit:{n:'The Summit',w:12,h:44,diff:1.5,mult:2.3,packs:22,elites:6,camps:6,qs:7,chests:6,feel:'The climb to the highest point in the land, where everyone can sense a dark force waiting.'},
+  dark:{n:'The Dark Side',w:12,h:54,diff:2,mult:3,packs:26,elites:7,camps:6,qs:5,chests:5,feel:'There is no sky here. This is where the darkness took her.'},
 };
+TGH.LAND_PICK=['tundra','island','sky','forest','badlands'];
+TGH.LANDS={
+  cave:{name:'The Cave',el:'physical',hazard:'water',block:['boulder','boulder','mountain'],sky:'#1b1626',fog:'#120f1a',floor:['#7c7488','#6f6780'],edge:'#4a4358',
+    mons:[['Cave Wolf','beast'],['Gloom Slime','slime'],['Cave Wraith','wraith'],['Rock Brute','brute'],['Cave Bat','bat'],['Burrow Spider','spider'],['Pit Serpent','serpent'],['Restless Dead','skeleton']],
+    flavor:'A short crawl through the caves near home, where something big has made its den.',boss:'cave'},
+  tundra:{name:'Frozen Tundra',el:'ice',hazard:'water',block:['mountain','mountain','boulder'],sky:'#12202e',fog:'#0c1620',floor:['#cfe0ec','#bdd2e2'],edge:'#6f8aa0',
+    mons:[['Frost Wolf','beast'],['Rime Slime','slime'],['Ice Wraith','wraith'],['Glacier Brute','brute'],['Rime Bat','bat'],['Snow Weaver','spider'],['Ice Serpent','serpent'],['Frozen Dead','skeleton']],
+    flavor:'Snow bites at exposed skin. Something howls beyond the drifts.',boss:'The Pale Jarl'},
+  island:{name:'Ember Isles',el:'fire',hazard:'lava',block:['boulder','mountain'],sky:'#2a1410',fog:'#1a0c0a',floor:['#8a5a44','#7c4f3c'],edge:'#4a2418',
+    mons:[['Cinder Hound','beast'],['Magma Ooze','slime'],['Flame Wisp','wraith'],['Obsidian Brute','brute'],['Cinder Bat','bat'],['Lava Crawler','spider'],['Magma Wyrm','serpent'],['Charred Bones','skeleton']],
+    flavor:'Black sand, hot underfoot. The sea hisses where lava meets it.',boss:'Mother of Ash'},
+  sky:{name:'Storm Spires',el:'thunder',hazard:'void',block:['mountain','boulder'],sky:'#10121f',fog:'#0a0c18',floor:['#6a6a88','#5e5e7c'],edge:'#3a3a5e',
+    mons:[['Static Hound','beast'],['Volt Jelly','slime'],['Thunder Harpy','wraith'],['Stormbound Golem','brute'],['Storm Bat','bat'],['Sky Weaver','spider'],['Cloud Serpent','serpent'],['Lightning-Struck Dead','skeleton']],
+    flavor:'Stone bridges between floating crags. The air tastes of copper.',boss:'The Tempest Crown'},
+  forest:{name:'Rotwood',el:'grass',hazard:'water',block:['boulder','tree','mountain'],sky:'#16241a',fog:'#0d160f',floor:['#6e8a54','#627c4a'],edge:'#3c4f2e',
+    mons:[['Thornback','beast'],['Moss Slime','slime'],['Spore Wisp','wraith'],['Bark Brute','brute'],['Rot Bat','bat'],['Web Mother','spider'],['Vine Serpent','serpent'],['Rooted Dead','skeleton']],
+    flavor:'The trees lean in close. Spores drift in the dark like snow.',boss:'The Rotting Oak'},
+  badlands:{name:'Bone Badlands',el:'fighting',hazard:'water',block:['boulder','mountain'],sky:'#1c140e',fog:'#120c08',floor:['#a07850','#946c46'],edge:'#5a3a24',
+    mons:[['Scav Jackal','beast'],['Grit Slime','slime'],['Dust Shade','wraith'],['Bandit Brute','brute'],['Carrion Bat','bat'],['Sand Stalker','spider'],['Dune Serpent','serpent'],['Bandit Bones','skeleton']],
+    flavor:'Cracked earth and bleached ribs. Bandit fires smoke on the ridges.',boss:'Warlord Vask'},
+  abyss:{name:'The Abyss',el:'dark',hazard:'void',block:['mountain','boulder'],sky:'#07040c',fog:'#05030a',floor:['#3a2f50','#30284a'],edge:'#1a1230',
+    mons:[['Gloom Hound','beast'],['Void Ooze','slime'],['Hollow Shade','wraith'],['Abyssal Knight','brute'],['Shade Bat','bat'],['Void Weaver','spider'],['Abyssal Eel','serpent'],['Unlit Dead','skeleton']],
+    flavor:'There is no sky here. This is where the darkness took her.',boss:'The Unlit King'},
+};
+TGH.biomeKey=(len,land)=>len==='cave'||len==='dark'?len:len+':'+(land||'forest');
+TGH.BIOMES={};
+for(const len of Object.keys(TGH.LENGTHS)){
+  const L=TGH.LENGTHS[len],lands=len==='cave'?['cave']:len==='dark'?['abyss']:TGH.LAND_PICK;
+  for(const land of lands){
+    const LD=TGH.LANDS[land],key=TGH.biomeKey(len,land);
+    TGH.BIOMES[key]=Object.assign({},LD,{len,land,key,name:len==='cave'||len==='dark'?L.n:L.n+': '+LD.name,w:L.w,h:L.h,diff:L.diff,mult:L.mult,packs:L.packs,elites:L.elites,camps:L.camps,qs:L.qs,chests:L.chests,mats:0,mat:[],
+      boss:len==='summit'?'The Gatekeeper':LD.boss});
+  }
+}
 TGH.ADVENTURES=['cave','wilds','wasteland','summit','dark'];
 TGH.ADV_REQ={cave:null,wilds:'cave',wasteland:'wilds',summit:'wasteland',dark:'summit'};
 TGH.CAVE_BEASTS={
@@ -167,6 +193,9 @@ TGH.CAVE_BEASTS={
 TGH.BOSSES={
   'The Rotting Oak':{kind:'brute',hp:4.2,atk:1.2,mv:1,range:2,color:'#4d6b2e',eye:'#ffb02e',blurb:'A tree that remembers walking. Its roots reach two hexes.',rule:'ward'},
   'Mother of Ash':{kind:'serpent',hp:4.6,atk:1.3,mv:2,range:3,color:'#4a1c14',eye:'#ffd34a',blurb:'Born in the ember. Spits fire three hexes.',rule:'ward'},
+  'The Pale Jarl':{kind:'brute',hp:4.4,atk:1.2,mv:1,range:2,color:'#8fb4d0',eye:'#e8faff',blurb:'A frost-crowned warlord. His cold grows with every turn of the fight.',rule:'relentless'},
+  'The Tempest Crown':{kind:'wraith',hp:4.2,atk:1.3,mv:3,range:4,color:'#d9c84a',eye:'#fff7a0',blurb:'A storm given a crown. It strikes from afar and runs down whoever is weakest.',rule:'hunter'},
+  'Warlord Vask':{kind:'brute',hp:4.6,atk:1.25,mv:2,range:1,color:'#7a4a2a',eye:'#ff5a3a',blurb:'The bandit king of the badlands. He whistles up his raiders in the middle of the fight.',rule:'summoner'},
   'The Gatekeeper':{kind:'wraith',hp:5.2,atk:1.35,mv:2,range:4,color:'#5a6a8a',eye:'#9fd6ff',blurb:'It stands at the top of the world. A first, veiled look at what waits beyond.',rule:'charger'},
   'The Unlit King':{kind:'brute',hp:7,atk:1.5,mv:2,range:3,color:'#1c1230',eye:'#ff3a5a',blurb:'He has found you. There is no other path. Your sister is behind him.',rule:'summoner'},
 };
@@ -243,6 +272,25 @@ ml('Rime Bat','#b8d0e8','#6a88a8','#e8faff','#9ae8ff',.9,['icicles']);
 ml('Snow Weaver','#e0ecf4','#8aa0b8','#8fd0ea','#7ad8ff',1.1,['eye3','icicles']);
 ml('Ice Serpent','#8ad0e8','#3a7a9a','#e8faff','#c8f8ff',1,['frill','shards']);
 ml('Frozen Dead','#d8ecf8','#8aa8c0','#6ae0ff','#6ae0ff',1,['icicles','helm']);
+ml('Static Hound','#c8c04a','#6a6420','#fff07a','#fffadc',1,['shards','fangs']);
+ml('Volt Jelly','#d8e870','#7a8a30','#fffbb0','#ffffff',1,['bubbles','shards']);
+ml('Thunder Harpy','#a8a8d8','#4a4a78','#fff07a','#fff07a',1,['tendrils','crown']);
+ml('Stormbound Golem','#8a8aa8','#3e3e58','#fff07a','#ffee66',1.25,['plates','shards']);
+ml('Storm Bat','#6a6a98','#34345a','#fff07a','#fff07a',.9,['fangs','shards']);
+ml('Sky Weaver','#b8b8d8','#5a5a80','#fff07a','#fff07a',1.1,['eye3','shards']);
+ml('Cloud Serpent','#c8d0e8','#6a7298','#fff07a','#fff8b0',1,['frill','shards']);
+ml('Lightning-Struck Dead','#d8d8c0','#8a8a70','#fff07a','#fff07a',1,['cracks','helm']);
+ml('Scav Jackal','#a88a58','#5a4426','#e0c080','#ff9a3a',1,['fangs','spikes']);
+ml('Grit Slime','#b8985a','#6a5428','#e8d098','#fff0c0',1,['bubbles']);
+ml('Dust Shade','#a8987a','#5a4e38','#e8d098','#e8d098',1,['tendrils']);
+ml('Bandit Brute','#8a5a3a','#4a2c1a','#d8a050','#ff6a3a',1.2,['plates','tusks']);
+ml('Carrion Bat','#6a4a3a','#3a261c','#d88a5a','#ff5a3a',.9,['fangs']);
+ml('Sand Stalker','#c0a070','#6a5230','#e8d098','#ffd34a',1.1,['stinger','eye3']);
+ml('Dune Serpent','#c8a468','#6a5028','#f0d8a0','#fff06a',1,['frill','fangs']);
+ml('Bandit Bones','#d8c8a0','#8a7a58','#ff9a3a','#ff9a3a',1,['helm','rags']);
+ml('The Pale Jarl','#8fb4d0','#4a6a88','#e8faff','#e8faff',1,['crown','shards','plates']);
+ml('The Tempest Crown','#d9c84a','#7a6c20','#fff7a0','#fff7a0',1,['crown','shards','tendrils']);
+ml('Warlord Vask','#7a4a2a','#3a2010','#d8a050','#ff5a3a',1,['crown','plates','tusks']);
 ml('Gloom Hound','#2a2038','#120c1c','#9b70dc','#ff6adf',1,['glow','fangs','eye3']);
 ml('Void Ooze','#2a1a4a','#100820','#b070ff','#ff6adf',1,['bubbles','glow']);
 ml('Hollow Shade','#1c1430','#0a0614','#9b70dc','#ff6adf',1,['tendrils','halo']);
@@ -271,6 +319,10 @@ sp('Cinder Hound','frenzy',35,'weak','Smoldering Rage');sp('Magma Ooze','spikes'
 sp('Cinder Bat','leech',30,'back','Ember Drink');sp('Lava Crawler','execute',35,'weak','Scent of Burns');sp('Magma Wyrm','crusher',2.2,'fixate','Eruption Coil');sp('Charred Bones','gasp',100,'front','Cinder Burst');
 sp('Thornback','spikes',15,'front','Thornhide');sp('Moss Slime','regen',5,'front','Overgrowth');sp('Spore Wisp','leech',35,'back','Spore Feast');sp('Bark Brute','thick',25,'front','Bark Armor');
 sp('Rot Bat','execute',30,'weak','Carrion Sense');sp('Web Mother','pack',15,'back','Brood Mother');sp('Vine Serpent','keen',12,'fixate','Strangling Coil');sp('Rooted Dead','regen',4,'front','Rerooting');
+sp('Static Hound','frenzy',30,'weak','Static Charge');sp('Volt Jelly','spikes',18,'front','Live Wire');sp('Thunder Harpy','swift',30,'back','Gale Wings');sp('Stormbound Golem','thick',30,'front','Stormplate');
+sp('Storm Bat','slippery',12,'back','Crackling Flutter');sp('Sky Weaver','opener',45,'weak','Strike from Above');sp('Cloud Serpent','keen',15,'fixate','Thunder Fang');sp('Lightning-Struck Dead','gasp',90,'front','Arc Burst');
+sp('Scav Jackal','pack',14,'weak','Scavenger Pack');sp('Grit Slime','thick',22,'front','Gritty Hide');sp('Dust Shade','skin',22,'back','Dust Veil');sp('Bandit Brute','crusher',2.2,'front','Raider Swing');
+sp('Carrion Bat','execute',30,'weak','Carrion Sense');sp('Sand Stalker','opener',50,'weak','Ambush from the Dunes');sp('Dune Serpent','keen',15,'fixate','Dune Fang');sp('Bandit Bones','gasp',90,'front','Rattle Burst');
 sp('Gloom Hound','pack',15,'weak','Shadow Pack');sp('Void Ooze','regen',6,'front','Endless');sp('Hollow Shade','skin',30,'back','Hollow');sp('Abyssal Knight','crusher',2.3,'fixate','Oathbreaker');
 sp('Shade Bat','slippery',15,'back','Shade Wing');sp('Void Weaver','execute',40,'weak','Unravel');sp('Abyssal Eel','leech',30,'fixate','Void Bite');sp('Unlit Dead','gasp',120,'front','Grave Burst');
 sp('The Cave Bear','frenzy',30,'fixate','Rising Fury');sp('The Giant Boar','crusher',2.4,'fixate','Tusk Charge');sp('The Night Panther','swift',30,'weak','Three Shadows');
@@ -316,11 +368,11 @@ TGH.FOE_SKILLS={
 };
 TGH.SHAPE_SKILLS={beast:['rend','howl'],slime:['ooze','harden'],wraith:['drain','curse','weary'],brute:['sweep','harden'],bat:['drain','rend'],spider:['web','rend'],serpent:['rend','sweep'],skeleton:['harden','weary','sweep']};
 // One monster in every land works with the pack instead of fighting.
-TGH.TEAM_OF={'Gloom Slime':'mend','Rime Slime':'mend','Flame Wisp':'mend','Spore Wisp':'mend','Hollow Shade':'mend','Rock Brute':'rally','Glacier Brute':'rally','Cinder Hound':'rally','Bark Brute':'rally','Abyssal Knight':'rally','Restless Dead':'guard','Frozen Dead':'guard','Obsidian Brute':'guard','Rooted Dead':'guard','Unlit Dead':'guard'};
+TGH.TEAM_OF={'Volt Jelly':'mend','Grit Slime':'mend','Dust Shade':'mend','Stormbound Golem':'rally','Bandit Brute':'rally','Lightning-Struck Dead':'guard','Bandit Bones':'guard','Gloom Slime':'mend','Rime Slime':'mend','Flame Wisp':'mend','Spore Wisp':'mend','Hollow Shade':'mend','Rock Brute':'rally','Glacier Brute':'rally','Cinder Hound':'rally','Bark Brute':'rally','Abyssal Knight':'rally','Restless Dead':'guard','Frozen Dead':'guard','Obsidian Brute':'guard','Rooted Dead':'guard','Unlit Dead':'guard'};
 // how many skills a land teaches its monsters
 TGH.BIOME_SKILLS={cave:0,wilds:1,wasteland:1,summit:2,dark:2};
 // the shove/pull skill an elite or boss of each element knows
-TGH.ELITE_SKILL={fire:'shove',grass:'pull',ice:'pull',physical:'shove',dark:'pull'};
+TGH.ELITE_SKILL={thunder:'shove',fighting:'pull',fire:'shove',grass:'pull',ice:'pull',physical:'shove',dark:'pull'};
 // Knowledge comes in four stages
 TGH.SCOUT_LV=['Not scouted','Basics','Stats & resistances','Skills','Signature ability & habit'];
 
@@ -348,16 +400,16 @@ TGH.POTIONS={
 };
 TGH.MATS={
   stone:{n:'Stone',col:'#8a8a92',from:'physical',d:'Stone: dropped in every land. Used for the town: foundations, the Vault, the Forge and whetstones for upgrading gear.'},
-  metal:{n:'Scrap Metal',col:'#c0b8a8',from:'brute',d:'Scrap Metal: dropped by hulking brutes. Used by the Forge and the Witch\u2019s cauldron.'},
-  wood:{n:'Wood',col:'#9a6a3a',from:'grass',d:'Wood: dropped in the Wilds. Used for the Farm (fences, barns) and the Family Home.'},
-  hide:{n:'Hide',col:'#b0774c',from:'beast',d:'Hide: dropped by beasts and the restless dead. Used for the Farm.'},
-  crystal:{n:'Ice Crystal',col:'#8fd0ea',from:'ice',d:'Ice Crystal: dropped on the Summit. Used by the Witch (vials, scrying glass).'},
-  carbon:{n:'Carbon',col:'#5a5258',from:'fire',d:'Carbon: dropped in the Wasteland. Used by the Witch (charcoal for her cauldron).'},
+  metal:{n:'Scrap Metal',col:'#c0b8a8',from:'thunder',d:'Scrap Metal: dropped in the Storm Spires. Used by the Forge and the Witch\u2019s cauldron.'},
+  wood:{n:'Wood',col:'#9a6a3a',from:'grass',d:'Wood: dropped in Rotwood. Used for the Farm (fences, barns) and the Family Home.'},
+  hide:{n:'Hide',col:'#b0774c',from:'fighting',d:'Hide: dropped in the Bone Badlands. Used for the Farm.'},
+  crystal:{n:'Ice Crystal',col:'#8fd0ea',from:'ice',d:'Ice Crystal: dropped in the Frozen Tundra. Used by the Witch (vials, scrying glass).'},
+  carbon:{n:'Carbon',col:'#5a5258',from:'fire',d:'Carbon: dropped on the Ember Isles. Used by the Witch (charcoal for her cauldron).'},
   void:{n:'Void Shard',col:'#9b70dc',from:'dark',d:'Void Shard: dropped only on the Dark Side. Used for the final upgrades.'},
 };
 // Each enemy drops, on its own, the material of its land (fire gives Carbon, grass gives Wood...) and sometimes one of its kind; every enemy drops a little Stone.
-TGH.EL_MAT={physical:'stone',grass:'wood',fire:'carbon',ice:'crystal',dark:'void'};
-TGH.KIND_MAT={beast:'hide',skeleton:'hide',spider:'hide',brute:'metal'};
+TGH.EL_MAT={physical:'stone',grass:'wood',fire:'carbon',ice:'crystal',dark:'void',thunder:'metal',fighting:'hide'};
+TGH.KIND_MAT={};
 TGH.addMat=(o,k,v)=>{o[k]=Math.round(((o[k]||0)+v)*10)/10};
 TGH.rollMat=function(biome){const B=TGH.BIOMES[biome];const k=TGH.EL_MAT[B&&B.el]||'stone';return Math.random()<.4?'stone':k};
 
@@ -422,3 +474,14 @@ TGH.HINTS=[
   'Bring materials home to rebuild the town.',
 ];
 })();
+
+/* ---------- campfires: 3 camp points to split between activities. The hero who steps on the fire lends a stat to the matching activity (+3% per point, up to +60%). ---------- */
+TGH.CAMP_PTS=3;
+TGH.CAMP_ACT={
+  rest:{n:'Rest',ico:'\u2764',stat:'end',d:'Every hero recovers 15% health and 15% mana.'},
+  ease:{n:'Ease the aches',ico:'\u263E',stat:'agi',d:'Every hero loses 15 fatigue.'},
+  plan:{n:'Plan the next fight',ico:'\u2694',stat:'str',d:'The next battle: the party deals 8% more damage.'},
+  scout:{n:'Scout ahead',ico:'\u{1F441}',stat:'per',d:'Reveals the map ahead of the fire: 5 rows.'},
+  drill:{n:'Drill',ico:'\u{1F4D6}',stat:'int',d:'Every hero gains experience worth about two thirds of a battle here.'},
+};
+TGH.campBonus=(h,k)=>Math.min(.6,(h.stats[TGH.CAMP_ACT[k].stat]||0)*.03);

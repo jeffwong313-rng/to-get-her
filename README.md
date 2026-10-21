@@ -28,3 +28,6 @@ Open the GitHub Pages site on a phone or computer. On a phone, use "Add to Home 
 3. Visit `https://<your-name>.github.io/to-get-her/`.
 
 No build step: plain scripts plus a bundled three.js.
+
+- Lands: every adventure length (Wilds, Wasteland, Summit) can be run in any of Dark Side's five elemental lands (Frozen Tundra, Ember Isles, Storm Spires, Rotwood, Bone Badlands) with their own monsters, guardian and materials. The Cave and the Dark Side are single places.
+- Campfires: 3 camp points to split between Rest, Ease the aches, Plan the next fight, Scout ahead and Drill. The hero who steps on the fire lends a stat to the matching activity.

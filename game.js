@@ -81,7 +81,8 @@ const kindOf=(biome,name)=>{const m=TGH.BIOMES[biome].mons.find(x=>x[0]===name);
 G.sisterName=()=>(G.s.sister&&G.s.sister.name)||'Mira';
 
 /* ---------- starting an adventure ---------- */
-G.startRun=function(biome){
+G.startRun=function(a,land){
+  const biome=land?TGH.biomeKey(a,land):(TGH.BIOMES[a]?a:TGH.biomeKey(a,'forest'));
   const s=G.s,B=TGH.BIOMES[biome];
   const seed=(Math.random()*1e9)|0;
   const map=TGH.genMap(biome,seed);
@@ -93,11 +94,11 @@ G.startRun=function(biome){
   for(const h of s.heroes){h.st={};h.down=false;h.hp=h.maxHp;h.mp=h.maxMp;h.ap=h.maxAp;h.minR=null;h.depth=0}
   const boss=map.ents.find(e=>e.type==='boss');boss.name=bossName;
   const modId=TGH.landMod(s.town,biome);
-  s.run={mod:modId,blessings:[],biome,map,vis:new Array(map.w*map.h).fill(0),loot:{gold:0,mats:{},xp:0},turn:{hero:0,bank:0,round:1},battle:null,bossName,bossBeaten:false,rounds:0,foesKilled:0,log:[]};
+  s.run={mod:modId,blessings:[],biome,len:B.len,map,vis:new Array(map.w*map.h).fill(0),loot:{gold:0,mats:{},xp:0},turn:{hero:0,bank:0,round:1},battle:null,bossName,bossBeaten:false,rounds:0,foesKilled:0,log:[]};
   s.heroes[0].c=map.start[0].c;s.heroes[0].r=map.start[0].r;
   s.heroes[1].c=map.start[1].c;s.heroes[1].r=map.start[1].r;
   G.enterRun(true);
-  G.beat('arrive',biome);
+  G.beat('arrive',B.len,B.flavor);
 };
 // Build the scene from the run in the save (a fresh start or a loaded one).
 G.enterRun=function(fresh){
@@ -277,11 +278,11 @@ G.bondAdd=function(n){const run=R_();if(!run)return;const was=run.bond||0;run.bo
 G.partnerOf=h=>G.s.heroes.find(x=>x!==h);
 G.flanked=(h,t)=>{const p=G.partnerOf(h);return !!(p&&!p.down&&G.mode==='battle'&&dist(p,t)<=2)};
 // A few lines of story: once when you first reach a land, and a clue the first time its guardian falls.
-G.beat=async function(kind,biome){
+G.beat=async function(kind,biome,extra){
   const B=TGH.BEATS&&TGH.BEATS[biome];if(!B)return;
   const seen=G.s.seen=G.s.seen||{};const key=kind+':'+biome;
   if(seen[key]||(kind==='clue'&&!B.clue))return;seen[key]=1;
-  const txt=(kind==='clue'?B.clue:B.arrive).replace(/\{sis\}/g,G.sisterName());
+  const txt=(kind==='clue'?B.clue:B.arrive+(extra?' '+extra:'')).replace(/\{sis\}/g,G.sisterName());
   await ui().modalChoice(kind==='clue'?B.clueT:B.t,'<p class="story">'+txt+'</p>',[{label:kind==='clue'?'Press on':'Onward',cls:'gold'}]);
 };
 G.addFat=function(h,x){
@@ -290,17 +291,32 @@ G.addFat=function(h,x){
   return msgs;
 };
 G.useCamp=async function(e,h){
-  const run=R_();e.gone=true;
+  const run=R_();
+  const use=await ui().campMenu(h,TGH.CAMP_PTS);
+  if(!use){tell('You leave the fire for now.');return}
+  e.gone=true;
   const obj=e.obj;if(obj&&obj.userData.flame)obj.userData.flame.forEach(f=>f.scale.set(.5,.5,.5));
-  for(const x of G.s.heroes){
-    if(x.down){x.down=false;x.hp=Math.round(x.maxHp*.3);A.revive(x)}
-    x.hp=Math.min(x.maxHp,x.hp+Math.round(x.maxHp*.4));x.mp=Math.min(x.maxMp,x.mp+Math.round(x.maxMp*.4));
-    if(x.fat>0){x.fat=Math.max(0,x.fat-50);TGH.recalc(x,G.s.town)}
-    A.fx.sparkles(A.unitPos(x),'#ffcf6a',12,.6);
-    ui().float(x,'+'+Math.round(x.maxHp*.4),'heal');
-  }
-  tell('You rest by the fire. Both heroes recover 40% health and mana, and 50% fatigue.','good');
-  ui().refresh();await sleep(700);
+  const town=G.s.town,out=[];
+  for(const x of G.s.heroes)if(x.down){x.down=false;x.hp=Math.round(x.maxHp*.3);A.revive(x)}
+  const live=G.s.heroes;
+  const B=k=>1+TGH.campBonus(h,k);
+  if(use.rest){const p=.15*use.rest*B('rest');
+    out.push(live.map(x=>{const v=Math.round(x.maxHp*p),m=Math.round(x.maxMp*p);x.hp=Math.min(x.maxHp,x.hp+v);x.mp=Math.min(x.maxMp,x.mp+m);A.fx.sparkles(A.unitPos(x),'#ffcf6a',12,.6);ui().float(x,'+'+v,'heal');return `${x.name} +${v} HP, +${m} MP`}).join(', '))}
+  if(use.ease){const d=Math.round(15*use.ease*B('ease'));for(const x of live){x.fat=Math.max(0,(x.fat||0)-d);TGH.recalc(x,town)}
+    out.push(`Fatigue down by ${d}: ${live.map(x=>`${x.name} ${Math.round(x.fat||0)}%`).join(', ')}`)}
+  if(use.plan){const d=Math.round(8*use.plan*B('plan'));run.campBuff={dmg:d};out.push(`The plan is set: the next battle deals +${d}% damage.`)}
+  if(use.scout){const n=Math.round(5*use.scout*B('scout')),m=run.map;
+    for(let r=Math.max(0,e.r-n);r<=e.r;r++)for(let c=0;c<m.w;c++){const k=r*m.w+c;if(run.vis[k]<1)run.vis[k]=1}
+    G.computeVis();out.push(`${h.name} scouts ${n} rows ahead of the fire.`)}
+  if(use.drill){
+    const lvl=TGH.foeLevel(run.biome,e.r,run.map.h,0),f=TGH.makeFoe('Drill','beast',lvl,{biome:run.biome});
+    const xp=Math.round(f.xp*2*(2/3)*use.drill*B('drill'));
+    out.push(live.map(x=>{const r=TGH.gainXp(x,xp,town);return `${x.name} +${r.xp} XP`+(r.gained?' (level up!)':'')}).join(', '));
+    ui().checkLevelUps()}
+  for(const x of live)if(x.injury)out.push(`${x.name}'s injury still aches.`);
+  for(const l of out)tell(l,'good');
+  await ui().modalChoice('You make camp',out.map(l=>`<p>${l}</p>`).join(''),[{label:'Break camp'}]);
+  ui().refresh();
 };
 G.takeMat=function(e,h){
   e.gone=true;A.refreshEnt(e);
@@ -413,6 +429,7 @@ G.beginBattle=async function(ent,trigHero){
   }
   foes=foes.filter(f=>!f.down);
   run.battle={foes,ent:ent.id,entRef:ent.type==='ambush'?null:ent.id,round:1};
+  TGH.campDmg=0;if(run.campBuff){TGH.campDmg=run.campBuff.dmg;tell(`The plan pays off: +${run.campBuff.dmg}% damage this battle.`,'good');run.campBuff=null}
   // the pack on the map becomes the pack on the field
   if(ent.type!=='ambush'){ent.gone=true;if(ent.obj)ent.obj.visible=false}
   G.mode='battle';
@@ -1003,13 +1020,13 @@ G.victory=async function(){
   // the pack, the boss
   const ent=run.map.ents.find(e=>e.id===b.ent);if(ent){ent.gone=true;A.removeEnt(ent)}
   for(const f of b.foes)A.removeUnit(f);
-  run.battle=null;G.mode='explore';
+  run.battle=null;TGH.campDmg=0;G.mode='explore';
   if(wasBoss){run.bossBeaten=true;G.addExitPortal();
     if(run.biome==='cave'){s.town.caveBeaten=s.town.caveBeaten||[];if(!s.town.caveBeaten.includes(run.bossName))s.town.caveBeaten.push(run.bossName)}}
   G.computeVis();
   G.busy=false;
   await ui().victory({xp,gold,items,mats,results,boss:bossFoe});
-  if(wasBoss)await G.beat('clue',run.biome);
+  if(wasBoss)await G.beat('clue',run.len||run.biome);
   ui().checkLevelUps();
   if(wasElite&&!wasBoss)await G.pickBlessing();
   A.focus(G.s.heroes[0].c,G.s.heroes[0].r);
@@ -1028,7 +1045,7 @@ G.pickBlessing=async function(){
 };
 G.defeat=async function(){
   if(G.mode==='ended')return;
-  G.mode='ended';G.busy=true;
+  G.mode='ended';G.busy=true;TGH.campDmg=0;
   const run=R_(),s=G.s;
   const lost={gold:run.loot.gold,mats:Object.assign({},run.loot.mats)};
   const fee=0;
@@ -1099,14 +1116,14 @@ G.finishAdventure=async function(early,flee){
   }
   G.clearFound();
   s.town.gold+=loot.gold;for(const k of Object.keys(loot.mats))TGH.addMat(s.town.mats,k,loot.mats[k]);
-  const biome=run.biome;
-  if(beaten&&!s.town.beaten.includes(biome))s.town.beaten.push(biome);
+  const biome=run.biome,len=run.len||run.biome;
+  if(beaten&&!s.town.beaten.includes(len))s.town.beaten.push(len);
   for(const h of s.heroes){h.down=false;h.st={};h.hp=h.maxHp;h.mp=h.maxMp;G.homeRest(h)}
   const summary={biome,beaten,gold:loot.gold,mats:loot.mats,early,foes:run.foesKilled,fled};
   s.town.runs=(s.town.runs||0)+1;s.run=null;TGH.syncMods(null);for(const h of s.heroes)TGH.recalc(h,s.town);G.save();
   await ui().homecoming(summary);
   G.busy=false;
-  if(beaten&&biome==='dark'){await ui().ending();}
+  if(beaten&&len==='dark'){await ui().ending();}
   G.toTown();
 };
 G.goHome=function(){

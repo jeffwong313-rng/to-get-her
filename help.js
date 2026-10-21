@@ -48,7 +48,7 @@ add('Elements','prism','Prism','Prism Hail and Rain of Stars choose, for each ar
 add('Map','camp','Camp fire','Walk onto it to rest. Heals both heroes, restores mana and brings a fallen partner back. Once used it burns down.');
 add('Map','question','? tile','Walk onto it to find out. It can be treasure, a clue about your sister, a healing spring or a trap. Luck improves the odds.');
 add('Map','chest','Chest','Loot waits inside: gear, gold or materials.');
-add('Map','mat','Materials','Enemies drop materials on their own: stone from every foe, plus the material of their land (wood in the Wilds, carbon in the Wasteland, ice crystal on the Summit, void shards on the Dark Side), and hide or scrap metal from beasts and brutes. Nothing lies on the ground. Carry it all home to rebuild the town. Fleeing or fainting loses some or all of it.');
+add('Map','mat','Materials','Enemies drop materials on their own: stone from every foe, plus the material of their land. Rotwood gives wood, the Ember Isles carbon, the Frozen Tundra ice crystal, the Storm Spires scrap metal and the Bone Badlands hide. Void shards drop only on the Dark Side. Nothing lies on the ground. Carry it all home to rebuild the town. Fleeing or fainting loses some or all of it.');
 add('Map','elite','Elite','A stronger monster, sometimes with a mutation. It notices heroes within 2 hexes and starts a fight by itself. It drops better loot.');
 add('Map','boss','Boss','Guards the way out of each land. Notices you from 2 hexes. If one hero starts the fight, the other must spend AP to walk over and help.');
 add('Map','terrain','Terrain','Boulders and mountains block walking and sight. Water and lava cannot be crossed. Plan a route around them.');

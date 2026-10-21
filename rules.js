@@ -155,7 +155,7 @@ TGH.bestWeaponFor=h=>{const s=h.base;const m=Math.max(s.str,s.agi,s.int,s.end);
 /* ---------- monsters ---------- */
 const LEVEL_BASE={cave:1,wilds:6,wasteland:12,summit:18,dark:25};
 TGH.LEVEL_BASE=LEVEL_BASE;
-TGH.foeLevel=(biome,r,H,extra)=>LEVEL_BASE[biome]+Math.floor((H-1-r)/H*4)+(extra||0);
+TGH.foeLevel=(biome,r,H,extra)=>LEVEL_BASE[(TGH.BIOMES[biome]||{len:biome}).len]+Math.floor((H-1-r)/H*4)+(extra||0);
 // Two heroes at once: monsters are tougher than they used to be.
 const FOE_HP=1.3,FOE_ATK=1.0;
 // the early lands are kinder: a brand-new pair of heroes has to be able to win the first cave
@@ -201,7 +201,7 @@ TGH.applySpecies=function(f,K,o,biomeKey){
   f.res={};f.res[a]=f.boss?.3:.25;f.res[b]=-.3;
   if((TGH.mods||{}).foeRes)for(const e of TGH.ELEMENTS)f.res[e]=(f.res[e]||0)+TGH.mods.foeRes/100;
   // skills: more with the land and with danger
-  const shape=K.look||'beast';let n=(TGH.BIOME_SKILLS[biomeKey]||0)+(f.elite?1:0)+(f.boss?2:0);
+  const shape=K.look||'beast';let n=(TGH.BIOME_SKILLS[(TGH.BIOMES[biomeKey]||{len:biomeKey}).len]||0)+(f.elite?1:0)+(f.boss?2:0);
   const list=[];const team=TGH.TEAM_OF[name];
   const base=(TGH.SHAPE_SKILLS[shape]||[]).slice();
   if(team&&n>0)list.push(team);
@@ -283,7 +283,7 @@ TGH.strike=function(att,def,skill,o){
     else if(def.exposed>0)dmg*=1.25;
   }
   if(def.team==='hero')dmg*=(o.foeScale||1)*TGH.fatTaken(def);
-  if(hero)dmg*=TGH.fatDmg(att)*(1+((TGH.mods||{}).power||0)/100)*(o.flank?1.15:1)*(TGH.tandemMult||1);
+  if(hero)dmg*=TGH.fatDmg(att)*(1+((TGH.mods||{}).power||0)/100)*(o.flank?1.15:1)*(TGH.tandemMult||1)*(1+(TGH.campDmg||0)/100);
   dmg=Math.max(1,Math.round(dmg));
   return {hit:true,dmg,crit,mult:m,el};
 };
