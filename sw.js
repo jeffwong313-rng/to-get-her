@@ -1,5 +1,5 @@
 // To Get Her service worker. The version changes whenever the game changes, so updates install automatically.
-const VERSION='tgh-0011';
+const VERSION='tgh-0012';
 const CORE=['./','./index.html','./manifest.webmanifest','./style.css','./three.min.js','./data.js','./help.js','./story.js','./util.js','./rules.js','./chars.js','./art.js','./game.js','./sound.js','./ui.js','./screens.js','./main.js','./icon-192.png','./icon-512.png','./maskable-512.png','./apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION&&k!=='tgh-fonts').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

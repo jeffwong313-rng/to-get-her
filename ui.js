@@ -230,7 +230,7 @@ U.skillMenu=function(){
     G.chooseAction('skill',k)});
 };
 U.itemMenu=function(){
-  const h=G.active(),it=G.s.town.items;
+  const h=G.active(),it=(G.s.run&&G.s.run.bag)||G.s.town.items;
   const rows=Object.entries(TGH.POTIONS).filter(([id])=>it[id]>0).map(([id,P])=>`<button class="skrow" data-id="${id}"><span class="sn">${esc(P.n)} ×${it[id]}</span><span class="sc">1 AP</span><span class="sd">${esc(P.d)}</span></button>`).join('')||'<div class="empty">You have no items. The Witch sells potions in town.</div>';
   const d=popup(`<div class="pop-t">Items</div>${rows}`);
   d.querySelectorAll('.skrow').forEach(b=>b.onclick=async()=>{

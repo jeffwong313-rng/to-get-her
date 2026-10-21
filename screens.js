@@ -132,7 +132,7 @@ function drawRelation(){
   $('#c-back').onclick=()=>{C.step='look';drawCreation()};
   $('#c-next').onclick=()=>{if(!C.sister.name.trim())C.sister.name='Mira';C.step='stats';drawCreation()};
 }
-const spent=c=>TGH.STATS.reduce((a,s)=>a+c.base[s]-1,0);
+const spent=c=>TGH.STATS.reduce((a,s)=>a+TGH.costBetween(1,c.base[s]),0);
 const H_=TGH.help;
 function heroSummary(h){
   const d=TGH.DISC,tiers=TGH.TIERS;
@@ -154,15 +154,15 @@ function drawStats(){
     tmp.equip.weapon={slot:'weapon',fam:TGH.bestWeaponFor(tmp),base:5,plus:0,affixes:[],rarity:'common'};TGH.recalc(tmp,{});
     const rows=TGH.STATS.map(s=>{
       const v=c.base[s],nx=H_.next(s,v);
-      return `<div class="srow2"><div class="sline"><span class="sn">${TGH.STATFULL[s]} ${H_.q(s)}</span><button data-s="${s}" data-d="-1" ${v<=1?'disabled':''} aria-label="Lower ${TGH.STATFULL[s]}">−</button><b>${v}</b><button data-s="${s}" data-d="1" ${left<=0||v>=11?'disabled':''} aria-label="Raise ${TGH.STATFULL[s]}">+</button></div>
+      return `<div class="srow2"><div class="sline"><span class="sn">${TGH.STATFULL[s]} ${H_.q(s)}</span><button data-s="${s}" data-d="-1" ${v<=1?'disabled':''} aria-label="Lower ${TGH.STATFULL[s]}">−</button><b>${v}</b><button data-s="${s}" data-d="1" ${left<TGH.statCost(v)||v>=11?'disabled':''} aria-label="Raise ${TGH.STATFULL[s]}">+</button>${TGH.statCost(v)>1?`<small class="sc2">${TGH.statCost(v)} pts</small>`:''}</div>
         <small class="sd">${esc(TGH.STATD[s])}</small>
         <small class="pp">Each point: ${esc(H_.perPoint[s])}</small>
-        ${nx?`<small class="nx">Next: <b>${nx.more} more point${nx.more===1?'':'s'}</b> (to ${nx.at}) → ${esc(nx.text)}</small>`:'<small class="nx">Maxed out for now.</small>'}</div>`}).join('');
+        ${nx?`<small class="nx">Next: <b>${nx.more} more point${nx.more===1?'':'s'}</b> (to ${nx.at}, costs ${nx.cost} points) → ${esc(nx.text)}</small>`:'<small class="nx">Maxed out for now.</small>'}</div>`}).join('');
     return `<div class="cpanel stat p${i}"><div class="ph">${esc(c.name)} <small>${TGH.heroTitle(tmp)}</small></div>
       <div class="statcols"><div class="sleft"><img class="sport" src="${A.portrait(tmp,150,180)}"><div class="pleft ${left?'':'done'}">${left} point${left===1?'':'s'} left</div>${heroSummary(tmp)}</div><div class="sright">${rows}</div></div></div>`;
   };
   const ready=C.heroes.every(c=>spent(c)===TGH.START_POINTS);
-  scr().innerHTML=`<div class="creation"><div class="chead">Your SPECIAL ${H_.q('special')} <small>Everyone starts with 1 in each stat and ${TGH.START_POINTS} points to add (up to 11 in one stat). There are no classes: your stats decide which skills open up. Tier 2 skills need 10 in their stat.</small></div>
+  scr().innerHTML=`<div class="creation"><div class="chead">Your SPECIAL ${H_.q('special')} <small>Everyone starts with 1 in each stat and ${TGH.START_POINTS} points to add (up to 11 in one stat). Raising a stat costs 1 point each up to 6, then 2 points, then 3 and more. There are no classes: your stats decide which skills open up. Tier 2 skills need 10 in their stat.</small></div>
     <div class="cpanels">${panel(0)}${panel(1)}</div><div class="cfoot"><button class="big ghost" id="c-back">← Back</button><button class="big gold" id="c-go" ${ready?'':'disabled'}>Begin the journey</button></div></div>`;
   scr().querySelectorAll('.srow2 button').forEach(b=>b.onclick=()=>{
     const i=+b.closest('.cpanel').classList.contains('p1');const c=C.heroes[i];c.base[b.dataset.s]+=+b.dataset.d;
@@ -226,6 +226,42 @@ function buildCard(key){
   return `<div class="bcard"><b>${B.n} · ${L?'Lv '+L:'in ruins'}</b><small>${esc(B.d)}</small><div>${costHtml(c,t)}</div><button class="gold small" data-build="${key}" ${canPay(c,t)?'':'disabled'}>${L?'Upgrade to Lv '+(L+1):'Rebuild'}</button></div>`;
 }
 const gateLand={};
+/* ---------- preparing the party: gear and supplies before setting out ---------- */
+const PREP_STACK=6,prepSlots=t=>3+(t.b.lodge||0);
+const slotsOf=n=>Math.ceil(n/PREP_STACK),planSlots=pl=>Object.values(pl).reduce((a,n)=>a+slotsOf(n),0);
+function prepDefault(t){const pl={},cap=prepSlots(t);let used=0;
+  for(const id of Object.keys(TGH.POTIONS)){let n=Math.min(t.items[id]||0,id==='potion'?4:id==='mpotion'?2:1);while(n>0&&used+slotsOf(n)>cap)n--;if(n>0){pl[id]=n;used+=slotsOf(n)}}return pl}
+function prepModal(len,land){
+  const s=G.s,t=s.town;let hi=0,plan=prepDefault(t);
+  const m=document.createElement('div');m.className='modal';document.body.appendChild(m);
+  const score=it=>TGH.sellValue(it);
+  const draw=()=>{
+    const h=s.heroes[hi],cap=prepSlots(t),used=planSlots(plan);
+    const stash=t.pack.slice().sort((a,b)=>score(b)-score(a));
+    const slots=TGH.SLOTS.map(sl=>{const it=h.equip[sl];return `<div class="gslot ${it?'full':''}"><span class="sl">${TGH.SLOTN[sl]}</span>${it?`<b style="color:${TGH.RAR[it.rarity].c}">${esc(TGH.itemTitle(it))}</b><small>${gearCompare(h,it,true).join(' \u00b7 ')}</small><button class="small ghost" data-un="${sl}">Unequip</button>`:'<i class="muted">empty</i>'}</div>`}).join('');
+    const list=stash.length?stash.map(it=>{const cur=h.equip[it.slot];return `<div class="bcard"><b style="color:${TGH.RAR[it.rarity].c}">${esc(TGH.itemTitle(it))}</b><small>${TGH.RAR[it.rarity].l} ${TGH.SLOTN[it.slot]} \u00b7 ${gearCompare(h,it).join(' \u00b7 ')}</small><button class="small gold" data-eq="${it.id}">${cur?'Swap in':'Equip'}</button>${cur?`<small class="muted">replaces ${esc(TGH.itemTitle(cur))}</small>`:''}</div>`}).join(''):'<p class="muted">Nothing in the stash.</p>';
+    const ids=Object.keys(TGH.POTIONS).filter(id=>(t.items[id]||0)>0);
+    const sup=ids.length?ids.map(id=>{const n=plan[id]||0,P=TGH.POTIONS[id];return `<div class="packrow"><span class="pn">${esc(P.n)}</span><small class="muted">of ${t.items[id]}</small><button class="small" data-adj="${id}|-1" ${n<=0?'disabled':''}>\u2212</button><b>${n}</b><button class="small" data-adj="${id}|1" ${n>=t.items[id]||(n%PREP_STACK===0&&used>=cap)?'disabled':''}>+</button><small class="muted">${esc(P.d)}</small></div>`}).join(''):'<p class="muted">No supplies in town. The Witch sells them.</p>';
+    m.innerHTML=`<div class="mbox wide"><h2>Prepare the party</h2><div class="mbody scroll">
+      <div class="tabs">${s.heroes.map((x,i)=>`<button class="small ${i===hi?'gold':''}" data-hero="${i}">${esc(x.name)} \u00b7 Lv ${x.level}</button>`).join('')}<button class="small ghost" data-auto="1">Auto-equip the party</button></div>
+      <div class="derived"><span>HP <b>${h.maxHp}</b></span><span>MP <b>${h.maxMp}</b></span><span>Armor <b>${h.armor}</b></span><span>Evasion <b>${Math.round(h.eva)}%</b></span><span>Crit <b>${Math.round(h.crit)}%</b></span></div>
+      <h3>Gear</h3><div class="gearslots">${slots}</div>
+      <h3>Stash (${stash.length})</h3>${list}
+      <h3>Supplies \u00b7 ${used}/${cap} slots</h3><p class="muted">Each slot holds up to ${PREP_STACK} of one supply. Only what you bring can be used out there. Unused supplies come home if you return or flee, and are lost if you faint. A Return Scroll must be packed to be read.</p>${sup}
+      </div><div class="mbtns"><button class="mb" id="pp-back">Back</button><button class="mb gold" id="pp-go">Depart</button></div></div>`;
+    m.querySelectorAll('[data-hero]').forEach(b=>b.onclick=()=>{hi=+b.dataset.hero;draw()});
+    m.querySelectorAll('[data-un]').forEach(b=>b.onclick=()=>{const it=h.equip[b.dataset.un];if(!it)return;t.pack.push(it);delete h.equip[b.dataset.un];TGH.recalc(h,t);h.hp=Math.min(h.hp,h.maxHp);draw()});
+    m.querySelectorAll('[data-eq]').forEach(b=>b.onclick=()=>{const k=t.pack.findIndex(x=>x.id===b.dataset.eq);if(k<0)return;const it=t.pack.splice(k,1)[0];const cur=h.equip[it.slot];if(cur)t.pack.push(cur);h.equip[it.slot]=it;TGH.recalc(h,t);draw()});
+    m.querySelectorAll('[data-adj]').forEach(b=>b.onclick=()=>{const [id,d]=b.dataset.adj.split('|');const n=Math.max(0,(plan[id]||0)+ +d);if(n)plan[id]=n;else delete plan[id];draw()});
+    m.querySelector('[data-auto]').onclick=()=>{for(const x of s.heroes)for(const sl of TGH.SLOTS){let best=x.equip[sl]||null,bs=best?score(best):-1;
+        for(const it of t.pack)if(it.slot===sl&&score(it)>bs){best=it;bs=score(it)}
+        if(best&&best!==x.equip[sl]){const k=t.pack.indexOf(best);if(k>=0){t.pack.splice(k,1);if(x.equip[sl])t.pack.push(x.equip[sl]);x.equip[sl]=best}}}
+      for(const x of s.heroes)TGH.recalc(x,t);draw()};
+    m.querySelector('#pp-back').onclick=()=>{m.remove();townPanel('gate')};
+    m.querySelector('#pp-go').onclick=()=>{m.remove();const g=document.querySelector('.modal');if(g)g.remove();scr().innerHTML='';U.hudVisible(true);for(const x of s.heroes){x.hp=x.maxHp;x.mp=x.maxMp}G.startRun(len,land,plan)};
+  };
+  draw();
+}
 function townPanel(p){
   const s=G.s,t=s.town;
   if(p.startsWith('hero')){U.heroMenu(+p[4]);return}
@@ -280,7 +316,7 @@ function townPanel(p){
   m.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const [id,pr]=b.dataset.buy.split('|');if(t.gold<+pr)return;t.gold-=+pr;t.items[id]=(t.items[id]||0)+1;G.save();reopen()});
   m.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{const i=t.pack.findIndex(x=>x.id===b.dataset.sell);if(i<0)return;t.gold+=TGH.sellValue(t.pack[i]);t.pack.splice(i,1);G.save();reopen()});
   const rest=m.querySelector('#rest');if(rest)rest.onclick=()=>{for(const h of s.heroes){h.hp=h.maxHp;h.mp=h.maxMp}U.toast('You feel rested.');};
-  m.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{m.remove();scr().innerHTML='';U.hudVisible(true);{const [len,land]=b.dataset.go.split('|');G.startRun(len,land||undefined)}});
+  m.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{m.remove();{const [len,land]=b.dataset.go.split('|');prepModal(len,land||undefined)}});
   m.querySelectorAll('[data-land]').forEach(b=>b.onclick=()=>{const [len,land]=b.dataset.land.split('|');gateLand[len]=land;reopen()});
 }
 function settings(){
@@ -404,8 +440,8 @@ function heroTab(h,t){
 function statsTab(h){
   const rows=TGH.STATS.map(k=>{
     const v=h.stats[k],nx=TGH.help.next(k,v);
-    return `<div class="hmstat"><div class="hs1"><span class="sn">${TGH.STATFULL[k]} ${TGH.help.q(k)}</span><b class="sv">${v}${h.bonus[k]?`<small class="bn"> (${h.base[k]}+${h.bonus[k]})</small>`:''}</b><button class="plus" data-sp="${k}" ${h.points>0&&h.base[k]<30?'':'disabled'} aria-label="Raise ${TGH.STATFULL[k]}">+</button></div>
-      ${statLadder(h,k)}<small>${esc(TGH.STATD[k])}</small><small class="pp">Each point: ${esc(TGH.help.perPoint[k])}</small>${nx?`<small class="nx">Next: <b>${nx.more} more point${nx.more===1?'':'s'}</b> (to ${nx.at}) → ${esc(nx.text)}</small>`:''}</div>`}).join('');
+    return `<div class="hmstat"><div class="hs1"><span class="sn">${TGH.STATFULL[k]} ${TGH.help.q(k)}</span><b class="sv">${v}${h.bonus[k]?`<small class="bn"> (${h.base[k]}+${h.bonus[k]})</small>`:''}</b><button class="plus" data-sp="${k}" ${h.points>=TGH.statCost(h.base[k])&&h.base[k]<30?'':'disabled'} aria-label="Raise ${TGH.STATFULL[k]}">+</button>${TGH.statCost(h.base[k])>1?`<small class="sc2">${TGH.statCost(h.base[k])} pts</small>`:''}</div>
+      ${statLadder(h,k)}<small>${esc(TGH.STATD[k])}</small><small class="pp">Each point: ${esc(TGH.help.perPoint[k])}</small>${nx?`<small class="nx">Next: <b>${nx.more} more point${nx.more===1?'':'s'}</b> (to ${nx.at}, costs ${nx.cost} points) → ${esc(nx.text)}</small>`:''}</div>`}).join('');
   const up=TGH.help.nearest(h);
   return `<div class="pbanner ${h.points?'':'done'}">${h.points} stat point${h.points===1?'':'s'} to spend ${TGH.help.q('statpts')}<small>Every level: ${TGH.POINTS_PER_LEVEL} stat points and 1 skill point. Level ${h.level}${h.level<TGH.MAX_LEVEL?` · next level +${Math.max(0,TGH.xpNeed(h.level)-h.xp)} XP`:''}</small></div>
     ${up?`<div class="nearest">Closest unlock: <b>${esc(up.k.n)}</b> (${esc(TGH.skillReqText(up.k))}) · ${up.miss?up.miss+' stat point'+(up.miss===1?'':'s')+' short':'stats ready, needs level '+TGH.skillLvl(up.k)}</div>`:''}

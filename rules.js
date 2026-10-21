@@ -137,7 +137,10 @@ TGH.gainXp=function(h,xp,town){
   return {xp,gained};
 };
 // Spend a stat point.
-TGH.spendPoint=function(h,k,town){if(h.points<=0)return false;h.base[k]++;h.points--;const was=h.maxHp,wm=h.maxMp;TGH.recalc(h,town);if(!h.down){h.hp+=Math.max(0,h.maxHp-was);h.mp+=Math.max(0,h.maxMp-wm)}h.hp=Math.min(h.hp,h.maxHp);h.mp=Math.min(h.mp,h.maxMp);return true};
+// Raising a stat costs more the higher it goes (same ladder as Dark Side): 1 point up to 6, then 2 points for 7-9, 3 for 10-12, and so on.
+TGH.statCost=v=>{const t=v+1;return t<=6?1:2+Math.floor((t-7)/3)};
+TGH.costBetween=(v,to)=>{let c=0;for(let x=v;x<to;x++)c+=TGH.statCost(x);return c};
+TGH.spendPoint=function(h,k,town){const c=TGH.statCost(h.base[k]);if(h.points<c)return false;h.base[k]++;h.points-=c;const was=h.maxHp,wm=h.maxMp;TGH.recalc(h,town);if(!h.down){h.hp+=Math.max(0,h.maxHp-was);h.mp+=Math.max(0,h.maxMp-wm)}h.hp=Math.min(h.hp,h.maxHp);h.mp=Math.min(h.mp,h.maxMp);return true};
 TGH.learnSkill=function(h,id){if(h.skillPoints<=0||!TGH.canLearn(h,id))return false;h.skills.push(id);h.skillPoints--;return true};
 TGH.skillMp=(h,k)=>k.mpPct?Math.max(k.mp,Math.round(h.maxMp*k.mpPct)):k.mp;
 // Which kind of fighter a hero looks like right now, from the stat they favour. Nobody picks a class: this is only a name.

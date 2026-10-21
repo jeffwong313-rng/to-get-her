@@ -174,7 +174,7 @@ const MILES={
   cha:()=>[{at:2,text:'Mend opens (with INT 3)'},{at:4,text:'Rallying Cry, Circle of Mending, Serenity open'},{at:8,text:'Warlord\'s Banner, Resurrection, Perfect Zen open'},{at:13,text:'Shop discount reaches the 25% maximum'}],
   lck:()=>[{at:5,text:'noticeably more crits and loot'},{at:10,text:'better ? tile outcomes'},{at:20,text:'crit chance +24%'}]
 };
-H.next=(stat,v)=>{const l=MILES[stat]?MILES[stat]():[];const up=l.filter(x=>x.at>v).sort((a,b)=>a.at-b.at)[0];return up?{at:up.at,more:up.at-v,text:up.text}:null};
+H.next=(stat,v)=>{const l=MILES[stat]?MILES[stat]():[];const up=l.filter(x=>x.at>v).sort((a,b)=>a.at-b.at)[0];return up?{at:up.at,more:up.at-v,text:up.text,cost:TGH.costBetween(v,up.at)}:null};
 // What a single extra point gives right now, in plain words.
 H.perPoint={
   str:'+about 1.8 damage on every sword swing and Warrior skill',

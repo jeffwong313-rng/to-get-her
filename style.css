@@ -333,3 +333,5 @@ canvas.hmprev{width:100%;height:clamp(170px,34vh,300px);border-radius:16px;backg
 .campact .ci{font-size:1.6em;width:34px;text-align:center}.campact .ct{flex:1;display:flex;flex-direction:column;min-width:0}.campact .ct small{opacity:.85}.campact .cb{display:flex;gap:6px}
 
 .landrow{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.landchip{background:#1d1535;color:#e8e0ff;border:2px solid #4a3a7a;border-radius:999px;padding:4px 10px;font-size:.85em;cursor:pointer}.landchip.on{background:#3a2c66;box-shadow:0 0 8px #8a6aff88}
+
+.sc2{margin-left:4px;color:#f0d9a0}.gearslots{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}.packrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0}.packrow .pn{min-width:110px;font-weight:700}

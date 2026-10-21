@@ -81,7 +81,7 @@ const kindOf=(biome,name)=>{const m=TGH.BIOMES[biome].mons.find(x=>x[0]===name);
 G.sisterName=()=>(G.s.sister&&G.s.sister.name)||'Mira';
 
 /* ---------- starting an adventure ---------- */
-G.startRun=function(a,land){
+G.startRun=function(a,land,plan){
   const biome=land?TGH.biomeKey(a,land):(TGH.BIOMES[a]?a:TGH.biomeKey(a,'forest'));
   const s=G.s,B=TGH.BIOMES[biome];
   const seed=(Math.random()*1e9)|0;
@@ -97,6 +97,9 @@ G.startRun=function(a,land){
   s.run={mod:modId,blessings:[],biome,len:B.len,map,vis:new Array(map.w*map.h).fill(0),loot:{gold:0,mats:{},xp:0},turn:{hero:0,bank:0,round:1},battle:null,bossName,bossBeaten:false,rounds:0,foesKilled:0,log:[]};
   s.heroes[0].c=map.start[0].c;s.heroes[0].r=map.start[0].r;
   s.heroes[1].c=map.start[1].c;s.heroes[1].r=map.start[1].r;
+  {const t=s.town,bag={};const src=plan||Object.assign({},t.items);
+    for(const [id,n] of Object.entries(src)){const k=Math.min(n,t.items[id]||0);if(k>0){bag[id]=k;t.items[id]-=k}}
+    s.run.bag=bag}
   G.enterRun(true);
   G.beat('arrive',B.len,B.flavor);
 };
@@ -731,17 +734,17 @@ G.doGuard=function(){
   G.sel=null;G.pend=null;A.clearAllOverlays();ui().refresh();G.checkAutoEnd();
 };
 G.useItem=async function(id,target){
-  const h=G.active(),P=TGH.POTIONS[id],town=G.s.town;
+  const h=G.active(),P=TGH.POTIONS[id],town=G.s.town,sup=(R_()&&R_().bag)||town.items;
   if(G.busy)return;
-  if(!town.items[id]||town.items[id]<1){ui().toast('None left.');return}
+  if(!sup[id]||sup[id]<1){ui().toast('None left.');return}
   if(h.ap<1){ui().toast('Using an item costs 1 AP.');return}
   if(P.scroll){
     if(G.mode==='battle'){ui().toast('You cannot read a scroll in the middle of a fight.');return}
-    town.items[id]--;h.ap--;G.finishAdventure(true);return;
+    sup[id]--;h.ap--;G.finishAdventure(true);return;
   }
   if(P.revive){if(!target.down){ui().toast(target.name+' is not down.');return}}
   else if(target.down){ui().toast(target.name+' is down. Use a Phoenix Feather.');return}
-  G.busy=true;town.items[id]--;h.ap--;
+  G.busy=true;sup[id]--;h.ap--;
   const farm=1+(town.b.witch||1)*.08-.08;
   if(P.fat){const was=TGH.fatOf(target);target.fat=Math.max(0,(target.fat||0)-P.fat);TGH.recalc(target,town);ui().float(target,'Fatigue -'+(was-TGH.fatOf(target))+'%','heal')}
   if(P.heal){const a=Math.round(target.maxHp*P.heal*farm);target.hp=Math.min(target.maxHp,target.hp+a);ui().float(target,'+'+a,'heal');A.fx.sparkles(A.unitPos(target),'#ff9a9a',12,.8)}
@@ -1115,6 +1118,7 @@ G.finishAdventure=async function(early,flee){
     fled={mid:flee.mid,pct,goldLost,matsLost,dropped:dropped.map(i=>TGH.itemTitle(i))};
   }
   G.clearFound();
+  if(run.bag){for(const [id,n] of Object.entries(run.bag))if(n>0)s.town.items[id]=(s.town.items[id]||0)+n;run.bag=null}
   s.town.gold+=loot.gold;for(const k of Object.keys(loot.mats))TGH.addMat(s.town.mats,k,loot.mats[k]);
   const biome=run.biome,len=run.len||run.biome;
   if(beaten&&!s.town.beaten.includes(len))s.town.beaten.push(len);
