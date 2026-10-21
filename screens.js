@@ -461,11 +461,11 @@ function skillsTab(h){
         <div class="tiergrid">${list.map(sk=>{
           const has=h.skills.includes(sk.id),can=TGH.canLearn(h,sk.id),mp=TGH.skillMp(h,sk);
           const req=Object.entries(sk.need).map(([st,val])=>`<span class="${h.stats[st]>=val?'ok':'no'}">${TGH.STATN[st]} ${val}</span>`).join(' ');
-          return `<div class="skcard ${has?'has':can?'can':'lock'}"><div class="skh"><b>${esc(sk.n)}</b><span class="skmeta">${sk.ap} AP · ${sk.mp?mp+' MP':'free'} · ${reachName(sk)}</span></div><small>${esc(sk.d)}</small><div class="req">${req}</div>${has?'<span class="learned">Learned</span>':`<button class="small ${can&&TGH.pickFor(h,sk.id)>=0?'gold':''}" data-learn="${sk.id}" ${can&&TGH.pickFor(h,sk.id)>=0?'':'disabled'}>${can?(TGH.pickFor(h,sk.id)>=0?'Learn':'No pick yet'):'Locked'}</button>`}</div>`}).join('')}</div></div>`}).join('');
+          return `<div class="skcard ${has?'has':can?'can':'lock'}"><div class="skh"><b>${esc(sk.n)}</b><span class="skmeta">${sk.ap} AP · ${sk.mp?mp+' MP':'free'} · ${reachName(sk)}</span></div><small>${esc(sk.d)}</small><div class="req">${req}</div>${has?`<span class="learned">Learned</span><button class="small ${TGH.ensureLoadout(h).includes(sk.id)?'gold':''}" data-tog="${sk.id}">${TGH.ensureLoadout(h).includes(sk.id)?'Equipped':'Equip'}</button>`:`<button class="small ${can&&TGH.pickFor(h,sk.id)>=0?'gold':''}" data-learn="${sk.id}" ${can&&TGH.pickFor(h,sk.id)>=0?'':'disabled'}>${can?(TGH.pickFor(h,sk.id)>=0?'Learn':'No pick yet'):'Locked'}</button>`}</div>`}).join('')}</div></div>`}).join('');
     return `<div class="dgroup" style="--c:${d[k].col}"><div class="dgh"><b>${d[k].n}</b> <small>${esc(d[k].blurb)}</small><span class="dstat">${TGH.STATFULL[stat]} <b>${v}</b></span></div>${tiers}</div>`;
   }).join('');
   const np=TGH.nextPick(h.level),pk=h.picks||[];
-  return `<div class="pbanner ${pk.length?'':'done'}">${pk.length} skill pick${pk.length===1?'':'s'} ready${pk.length?' ('+pk.map(c=>TGH.TIERS[c].n).join(', ')+' or lower)':''} ${TGH.help.q('skillpts')}<small>${np?`Next pick at level ${np.lvl}: ${TGH.TIERS[np.tier].n} or lower. `:'No more picks. '}${h.skills.length} learned. A skill also needs its discipline stat. ${TGH.help.q('tiers')}</small></div>${attune}${filter}${groups}`;
+  return `<div class="pbanner ${pk.length?'':'done'}">${pk.length} skill pick${pk.length===1?'':'s'} ready${pk.length?' ('+pk.map(c=>TGH.TIERS[c].n).join(', ')+' or lower)':''} ${TGH.help.q('skillpts')}<small>${np?`Next pick at level ${np.lvl}: ${TGH.TIERS[np.tier].n} or lower. `:'No more picks. '}${h.skills.length} learned, ${TGH.ensureLoadout(h).length}/${TGH.LOADOUT_MAX} equipped for fights (tap Equip or Equipped to swap). A skill also needs its discipline stat. ${TGH.help.q('tiers')}</small></div>${attune}${filter}${groups}`;
 }
 function gearTab(h,t){
   const slots=TGH.SLOTS.map(sl=>{const it=h.equip[sl];return `<div class="gslot ${it?'full':''}"><span class="sl">${TGH.SLOTN[sl]}</span>${it?`<b style="color:${TGH.RAR[it.rarity].c}">${esc(TGH.itemTitle(it))}</b><small>${TGH.RAR[it.rarity].l} · ${gearCompare(h,it,true).join(' · ')}</small><button class="small ghost" data-un="${sl}">Unequip</button>`:'<small class="empty">empty</small>'}</div>`}).join('');
@@ -483,6 +483,7 @@ function bindHero(h,t){
   m.querySelectorAll('.hmsel').forEach(b=>b.onclick=()=>{HM.i=+b.dataset.h;again()});
   m.querySelectorAll('#hm-tabs button').forEach(b=>b.onclick=()=>{HM.tab=b.dataset.t;m.querySelector('#hm-content').scrollTop=0;again()});
   m.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{TGH.spendPoint(h,b.dataset.sp,t);if(h.rig&&A.setEquipLook)A.setEquipLook(h);again()});
+  m.querySelectorAll('[data-tog]').forEach(b=>b.onclick=()=>{if(!TGH.toggleLoadout(h,b.dataset.tog))U.toast('Only '+TGH.LOADOUT_MAX+' skills fit in a fight. Unequip one first.');again()});
   m.querySelectorAll('[data-learn]').forEach(b=>b.onclick=()=>{if(TGH.learnSkill(h,b.dataset.learn))again()});
   m.querySelectorAll('[data-el]').forEach(b=>b.onclick=()=>{h.attune=b.dataset.el;if(h.skills.includes('imbue'))h.arrowEl=b.dataset.el;again()});
   m.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{HM.filter=b.dataset.f;again()});

@@ -54,10 +54,12 @@ const sk=(id,o)=>{S[id]=Object.assign({id,mp:0,ap:2,acc:100,crit:0,el:'physical'
 /* Skill tiers. Your discipline stat decides what you are offered: tier 1 needs 3 in the stat, tier 2 needs 10, tier 3 needs 18
    and tier 4 needs 26 (plus a level). A few support skills also want Charisma. A hero with 11 STR, 11 INT and 11 AGI can
    learn tier 2 skills from the warrior, archer and mage lists at once. */
-TGH.TIERS={1:{stat:5,lvl:2,n:'Novice'},2:{stat:10,lvl:6,n:'Adept'},3:{stat:18,lvl:10,n:'Master'},4:{stat:26,lvl:20,n:'Legend'}};
+TGH.TIERS={1:{stat:5,lvl:2,n:'Novice'},2:{stat:10,lvl:8,n:'Adept'},3:{stat:18,lvl:16,n:'Master'},4:{stat:26,lvl:25,n:'Legend'}};
 /* Skills come in picks, not points: heroes start with none, learn their first basic skill at level 2, and then pick again at the levels below.
-   The number is the highest tier that pick may be spent on. Each pick still needs the stat and level for the skill chosen. Twelve picks by level 40. */
-TGH.SKILL_PICKS={2:1,4:1,6:2,8:2,10:3,13:3,16:3,20:4,25:4,30:4,35:4,40:4};
+   The number is the highest tier that pick may be spent on. Each pick still needs the stat and level for the skill chosen.
+   A hero can learn nine skills but only carry four into a fight (the loadout), so they have to choose. */
+TGH.SKILL_PICKS={2:1,4:1,8:2,12:2,16:3,20:3,25:4,30:4,35:4};
+TGH.LOADOUT_MAX=4;
 TGH.nextPick=lv=>{const ls=Object.keys(TGH.SKILL_PICKS).map(Number).sort((a,b)=>a-b).find(x=>x>lv);return ls?{lvl:ls,tier:TGH.SKILL_PICKS[ls]}:null};
 // Warrior (STR).
 sk('cleave',{disc:'war',tier:1,n:'Cleave',mp:6,ap:2,range:1,tgt:'enemy',aoe:1,mult:1.3,need:{str:5},d:'Swings through the target and every enemy next to it.'});

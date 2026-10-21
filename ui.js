@@ -146,13 +146,13 @@ U.renderActionBar=function(){
   let btns='';
   if(battle){
     btns+=`<button class="act atk" data-tip="Basic attack with your weapon. Damage scales with the weapon\u2019s stat (swords STR, bows AGI, staves INT, fists END)." data-a="attack" ${dis||(apOk(1)?'':'disabled')}><b>Attack</b><small>1 AP · reach ${rg}</small></button>`;
-    btns+=`<button class="act" data-tip="Skills you have learned. Each costs AP and usually mana. Tap the ? in the hero window for what unlocks them." data-a="skills" ${dis}><b>Skills</b><small>${h.skills.length} known</small></button>`;
+    btns+=`<button class="act" data-tip="Skills you have learned. Each costs AP and usually mana. Tap the ? in the hero window for what unlocks them." data-a="skills" ${dis}><b>Skills</b><small>${TGH.ensureLoadout(h).length}/${TGH.LOADOUT_MAX} equipped</small></button>`;
     btns+=`<button class="act" data-tip="Use potions and scrolls from your pack." data-a="items" ${dis}><b>Items</b><small>1 AP</small></button>`;
     btns+=`<button class="act" data-tip="Brace for the enemy turn: take less damage and draw attacks toward you." data-a="guard" ${dis||(apOk(1)?'':'disabled')}><b>Guard</b><small>1 AP</small></button>`;
     const bond=Math.round(run.bond||0);
     btns+=`<button class="act tandem ${bond>=100?'ready':''}" style="--bond:${bond}%" data-tip="Your bond fills as you fight side by side (+3% for each hit, +6% when you flank, +4% when you are hit). At 100%, both heroes strike the same enemy for 1.5x damage for just 1 AP." data-a="tandem" ${dis}><b>Tandem</b><small>Bond ${bond}%</small></button>`;
   }else{
-    btns+=`<button class="act" data-tip="Skills you have learned. Each costs AP and usually mana. Tap the ? in the hero window for what unlocks them." data-a="skills" ${dis}><b>Skills</b><small>${h.skills.length} known</small></button>`;
+    btns+=`<button class="act" data-tip="Skills you have learned. Each costs AP and usually mana. Tap the ? in the hero window for what unlocks them." data-a="skills" ${dis}><b>Skills</b><small>${TGH.ensureLoadout(h).length}/${TGH.LOADOUT_MAX} equipped</small></button>`;
     btns+=`<button class="act" data-tip="Use potions and scrolls from your pack." data-a="items" ${dis}><b>Items</b><small>potions</small></button>`;
     btns+=`<button class="act" data-tip="Open the hero window: stats, skills and gear." data-a="hero" ${dis}><b>Hero</b><small>${(h.points||h.skillPoints)?'points to spend!':'stats · gear'}</small></button>`;
     const near=G.s.heroes.every(x=>run.map.start.some(p=>TGH.dist(x,p)<=2));
@@ -218,7 +218,7 @@ U.closePopup=function(){if(U._pop){U._pop.remove();U._pop=null}if(U._off){docume
 U.skillMenu=function(){
   const h=G.active();
   if(!h.skills.length){U.toast('No skills yet. Open the Hero menu to learn one.');return}
-  const rows=h.skills.map(id=>{
+  const rows=TGH.ensureLoadout(h).map(id=>{
     const k=TGH.SKILLS[id],mp=TGH.skillMp(h,k),rg=TGH.skillRange(h,k);
     const usable=G.mode==='battle'?(h.ap>=k.ap&&h.mp>=mp):(['self','party','ally','fallen'].includes(k.tgt)&&k.healPct!==undefined&&h.ap>=k.ap&&h.mp>=mp);
     const inExplore=G.mode==='explore'&&!k.healPct&&!k.guard;
