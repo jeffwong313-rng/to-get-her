@@ -84,6 +84,12 @@ TGH.los=function(map,a,b){
 };
 
 /* ---------- map generator ---------- */
+// How many monsters a pack holds. The cave eases in: one early, mostly two in the middle, and now and then three near the end. Every other land is always three.
+TGH.packSize=function(biomeKey,r,H,rnd){
+  const B=TGH.BIOMES[biomeKey];if(!B||B.len!=='cave')return 3;
+  const p=(H-1-r)/H,x=rnd(),w=p<.34?[.85,.15,0]:p<.67?[.15,.75,.10]:[0,.7,.3];
+  return x<w[0]?1:x<w[0]+w[1]?2:3;
+};
 TGH.genMap=function(biomeKey,seed){
   const B=TGH.BIOMES[biomeKey],W=B.w,H=B.h,rg=TGH.rng(seed),rr=()=>rg();
   const ri=(a,b)=>a+Math.floor(rr()*(b-a+1)),pick=a=>a[Math.floor(rr()*a.length)];
@@ -137,7 +143,7 @@ TGH.genMap=function(biomeKey,seed){
   const place=(mind,maxRow,minRow)=>{for(let d=mind;d>=1;d--){const h=take(d,maxRow,minRow);if(h)return h}return null};
   for(let i=0;i<B.elites;i++){const h=place(4,H-7,3);if(!h)break;add('elite',h,{name:pick(mons)[0],mut:pick(Object.keys(TGH.MUTATIONS))})}
   for(let i=0;i<B.camps;i++)add('camp',place(4,H-4,3));
-  for(let i=0;i<B.packs;i++){const h=place(3,H-5);if(!h)break;add('pack',h,{names:[pick(mons)[0],pick(mons)[0],pick(mons)[0]]})}
+  for(let i=0;i<B.packs;i++){const h=place(3,H-5);if(!h)break;add('pack',h,{names:Array.from({length:TGH.packSize(biomeKey,h.r,H,rr)},()=>pick(mons)[0])})}
   for(let i=0;i<B.chests;i++)add('chest',place(2,H-4));
   for(let i=0;i<B.qs;i++)add('q',place(2,H-4));
   add('boss',{c:bossC,r:bossR},{name:null});

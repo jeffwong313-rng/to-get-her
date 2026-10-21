@@ -377,7 +377,7 @@ G.useQuestion=async function(e,h){
   }else if(kind==='ambush'){
     await ui().eventBox('Ambush!','Shapes drop from the dark. They were waiting for you.',[{label:'To arms'}]);
     const B=TGH.BIOMES[run.biome];
-    const names=[pick(B.mons)[0],pick(B.mons)[0],pick(B.mons)[0]];
+    const names=Array.from({length:TGH.packSize(run.biome,e.r,run.map.h,Math.random)},()=>pick(B.mons)[0]);
     const foes=names.map(n=>TGH.makeFoe(n,kindOf(run.biome,n),lvl,{biome:run.biome}));
     await G.beginBattle({id:uid(),type:'ambush',c:e.c,r:e.r,custom:foes},h);
   }else if(kind==='shrine'){
