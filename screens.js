@@ -20,12 +20,14 @@ U.showTitle=function(){
       ${has?'<button class="big gold" id="t-cont">Continue</button>':''}
       <button class="big" id="t-new">New Game</button>
       <button class="big ghost" id="t-imp">Import Save</button>
+      ${TGH.install&&!TGH.install.installed()?'<button class="big ghost inst-btn" id="t-inst">📲 Install on phone</button>':''}
     </div>
     <div class="fine">Two heroes, one device. Take turns, plan together, find her.</div>
   </div>`;
   if(has)$('#t-cont').onclick=()=>{if(G.load()){scr().innerHTML='';resume()}else U.toast('Could not read the save.')};
   $('#t-new').onclick=()=>{if(has&&!confirm('Start over? Your saved game will be replaced when you begin.'))return;U.creation()};
   $('#t-imp').onclick=()=>U.importBox();
+  if($('#t-inst'))$('#t-inst').onclick=()=>TGH.install.go();
 };
 function resume(){
   if(G.s.run){G.enterRun(false);U.hudVisible(true);U.refresh()}
@@ -330,7 +332,7 @@ function settings(){
     <button class="small" id="s-copy">Copy code</button>
     <p>Import a save code (replaces this game):</p>
     <textarea id="s-imp" rows="3"></textarea><button class="small" id="s-load">Load</button>
-    <button class="small" id="s-story">Read the story again</button> <button class="small" id="s-guide">Open the Guide</button><hr><button class="small ghost" id="s-title">Back to title</button> <button class="small ghost danger" id="s-wipe">Delete save</button></div>
+    <button class="small" id="s-story">Read the story again</button> <button class="small" id="s-guide">Open the Guide</button>${TGH.install&&!TGH.install.installed()?' <button class="small inst-btn" id="s-inst">📲 Install on phone</button>':''}<hr><button class="small ghost" id="s-title">Back to title</button> <button class="small ghost danger" id="s-wipe">Delete save</button></div>
     <div class="mbtns"><button class="mb" id="s-close">Close</button></div></div>`;
   document.body.appendChild(m);
   $('#s-exp').value=G.exportSave();
@@ -344,6 +346,7 @@ function settings(){
   m.querySelector('#s-close').onclick=()=>m.remove();
   m.querySelector('#s-story').onclick=()=>{m.remove();U.rereadStory()};
   m.querySelector('#s-guide').onclick=()=>TGH.help.open();
+  const si=m.querySelector('#s-inst');if(si)si.onclick=()=>{m.remove();TGH.install.go()};
 }
 U.settings=settings;
 U.ending=async function(){

@@ -20,7 +20,7 @@ A 2-player co-op, pass-and-play, XCOM-style hex adventure in full 3D anime style
 - An eight-page storybook opens the game.
 
 ## Play
-Open the GitHub Pages site on a phone or computer. On a phone, use "Add to Home Screen" to install it.
+Open the GitHub Pages site on a phone or computer. To install it on a phone, tap **📲 Install on phone** on the title screen (or in ☰ Settings). Android/Chrome shows the install prompt; on iPhone it walks you through Safari's Share → Add to Home Screen.
 
 ## Install via GitHub Pages
 1. Settings, then Pages.
